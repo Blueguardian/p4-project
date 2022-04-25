@@ -3,11 +3,6 @@
 #include <royale.hpp>
 #include <iostream>
 #include <mutex>
-#include <opencv2/opencv.hpp> 
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/common/projection_matrix.h>
@@ -47,119 +42,18 @@ void viewerOneOff(pcl::visualization::PCLVisualizer& viewer);
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
-using namespace cv;
 
 double dimensions;
 int user_data = 0;
 pcl::visualization::CloudViewer viewer("CloudViewer");
 
-///////////////////////////// ############# Bunglefuck below ############## /////////////////////////////////////////////
 
-class MyBungle : public IDepthDataListener
-{
-
-public:
-
-    MyBungle() :
-        undistortImage(true)
-    {
-
-        hasRun = false;
-    }
-
-    void onNewData(const DepthData* data)
-    {
-        // this callback function will be called for every new
-        std::lock_guard<std::mutex> lock(flagMutex);
-        pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);                    //creat a object cloud
-        pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
-        cloud = points2pcl(data, 242); //127(50),204(80),229(90),242(95),252(99) //this->depth_confidence 
-
-        std::vector<int> inliers;
-
-        // created RandomSampleConsensus object and compute the appropriated model
-        pcl::SampleConsensusModelSphere<pcl::PointXYZ>::Ptr model_s(new pcl::SampleConsensusModelSphere<pcl::PointXYZ>(cloud));
-
-        pcl::RandomSampleConsensus<pcl::PointXYZ> ransac(model_s);
-        ransac.setDistanceThreshold(.01);
-        ransac.computeModel();
-        ransac.getInliers(inliers);
-
-        // copies all inliers of the model computed to another PointCloud
-        pcl::copyPointCloud(*cloud, inliers, *final);
-    }
-
-    void setLensParameters(const LensParameters& lensParameters)
-    {
-        // Construct the camera matrix
-        // (fx   0    cx)
-        // (0    fy   cy)
-        // (0    0    1 )
-        Mat cameraMatrix = (Mat1d(3, 3) << lensParameters.focalLength.first, 0, lensParameters.principalPoint.first,
-            0, lensParameters.focalLength.second, lensParameters.principalPoint.second,
-            0, 0, 1);
-
-        // Construct the distortion coefficients
-        // k1 k2 p1 p2 k3
-        distortionCoefficients = (Mat1d(1, 5) << lensParameters.distortionRadial[0],
-            lensParameters.distortionRadial[1],
-            lensParameters.distortionTangential.first,
-            lensParameters.distortionTangential.second,
-            lensParameters.distortionRadial[2]);
-    }
-
-    void toggleUndistort()
-    {
-        std::lock_guard<std::mutex> lock(flagMutex);
-        undistortImage = !undistortImage;
-    }
-
-    bool hasRun;
-
-private:
-
-    float adjustZValue(float zValue)
-    {
-        float clampedDist = min(2.5f, zValue);
-        float newZValue = clampedDist / 2.5f * 255.0f;
-        return newZValue;
-    }
-
-    float adjustGrayValue(uint16_t grayValue)
-    {
-        float clampedVal = min(180.0f, grayValue * 1.0f);
-        float newGrayValue = clampedVal / 180.f * 255.0f;
-        return newGrayValue;
-    }
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
-    {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
-        cloud->is_dense = false;
-        for (size_t i = 0; i < data->points.size(); ++i) {
-            if (data->points.at(i).depthConfidence >= depthConfidence) {
-                cloud->push_back(pcl::PointXYZ(data->points.at(i).x, data->points.at(i).y, data->points.at(i).z));
-            }
-        }
-        return cloud;
-    }
-
-    // lens matrices used for the undistortion of
-    // the image
-    Mat cameraMatrix;
-    Mat distortionCoefficients;
-
-    std::mutex flagMutex;
-    bool undistortImage;
-};  //Bunglefuck
-
-///////////////////////////// ############# Bunglefuck above ############## /////////////////////////////////////////////
 
 
 class MyListener : public royale::IDepthDataListener
 {
 
+   
     /**
     * Data that has been received in onNewData, and will be printed in the paint() method.
     */
@@ -171,11 +65,8 @@ class MyListener : public royale::IDepthDataListener
 
 public:
 
-    MyListener() :
-        undistortImage(true)
-    {
-        hasRun = false;
-    }
+    MyListener() = default;
+
 
     /**
     * Creates a listener which will have callbacks from two sources - the Royale framework, when a
@@ -344,37 +235,14 @@ public:
         // You can also choose to plot everything down here in one go.
     }
     
-    void setLensParameters(const LensParameters& lensParameters)
-    {
-        // Construct the camera matrix
-        // (fx   0    cx)
-        // (0    fy   cy)
-        // (0    0    1 )
-        Mat cameraMatrix = (Mat1d(3, 3) << lensParameters.focalLength.first, 0, lensParameters.principalPoint.first,
-            0, lensParameters.focalLength.second, lensParameters.principalPoint.second,
-            0, 0, 1);
+    
 
-        // Construct the distortion coefficients
-        // k1 k2 p1 p2 k3
-        distortionCoefficients = (Mat1d(1, 5) << lensParameters.distortionRadial[0],
-            lensParameters.distortionRadial[1],
-            lensParameters.distortionTangential.first,
-            lensParameters.distortionTangential.second,
-            lensParameters.distortionRadial[2]);
-    }
+   
 
-    void toggleUndistort()
-    {
-        std::lock_guard<std::mutex> lock(flagMutex);
-        undistortImage = !undistortImage;
-    }
-
-    Mat distortionCoefficients;
+  
 
     std::mutex flagMutex;
-    bool undistortImage;
-    bool hasRun;
-
+  
 private:
 
     /**
@@ -548,10 +416,7 @@ int main(int argc, char* argv[])
     // IMPORTANT: call the initialize method before working with the camera device
     auto status = cameraDevice->initialize();
    
-    // retrieve the lens parameters from Royale
-    LensParameters lensParameters;
-    status = cameraDevice->getLensParameters(lensParameters);
-    listener.setLensParameters(lensParameters);
+   
 
     cameraDevice->registerDataListener(&listener);
     cameraDevice->startCapture();
@@ -561,15 +426,11 @@ int main(int argc, char* argv[])
     while (currentKey != 27)
     {
         // wait until a key is pressed
-        currentKey = waitKey(1);
+        currentKey = cin.get();
         
 
-        if (currentKey == 'd')
-        {
-            
-            // toggle the undistortion of the image
-            listener.toggleUndistort();
-        }
+        
+        
     }
     cameraDevice->stopCapture();
     return 0;
