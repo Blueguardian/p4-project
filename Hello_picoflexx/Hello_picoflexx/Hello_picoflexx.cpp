@@ -225,7 +225,7 @@ public:
             pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cylinder_color_h(cloud_cylinder, 180, 20, 20);
             viewer.showCloud(cloud_filtered, "cloud_cylinder");
 
-           // viewer.runOnVisualizationThread(viewerPsycho);
+           viewer.runOnVisualizationThread(viewerPsycho);
             
             // Plot cylinder shape
             //pcl::ModelCoefficients::Ptr corrected_coefs_cylinder(new pcl::ModelCoefficients);

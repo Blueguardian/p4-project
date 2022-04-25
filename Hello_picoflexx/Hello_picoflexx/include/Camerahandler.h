@@ -39,7 +39,9 @@
 #include <chrono>
 #include <thread>
 #include <sample_utils/PlatformResources.hpp>
-#include <Camerahandler.cpp>
+
+typedef pcl::PointXYZ PointT;
+typedef pcl::PointCloud<PointT> PointCloudT;
 
 using namespace royale;
 using namespace sample_utils;
@@ -74,6 +76,7 @@ public:
     void onNewData(const royale::DepthData* data) override;
     void setLensParameters(const LensParameters& lensParameters);
     void toggleUndistort();
+    void debugViz(pcl::PointCloud<PointT>::Ptr &cloud)
 
 private:
     /**
@@ -101,6 +104,8 @@ private:
     void correctCylShape(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud)
     std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction)
     void filter(const pcl::PointCloud<PointT>::Ptr &ptcloud)
+    void Viewer(pcl::PointCloud<PointT>::Ptr cloud);
+    void viewerPsycho(pcl::visualization::PCLVisualizer& viewer)
 };
 
 

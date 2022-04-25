@@ -47,7 +47,7 @@ class Camerahandler : public royale::IDepthDataListener
 public:
 
     //Public global fields
-    MyListener() :
+    MyListener(bool vis = true) :
             undistortImage(true)
     {
         hasRun = false;
@@ -106,6 +106,13 @@ private:
     */
     const royale::Vector<royale::StreamId> m_streamIds;
 
+    void viewer(pcl::PointCloud<PointT>::Ptr cloud)
+    {
+        pcl::visualization::CloudViewer viewer("CloudViewer");
+        viewer.showCloud(cloud, "cloud");
+        viewer.runOnVisualizationThread(viewerPsycho);
+    }
+
     /**
     * Updated in each call to onNewData, for each stream it contains the most recently received
     * frame.  Should only be accessed with m_lockForReceivedData held.
@@ -122,10 +129,21 @@ private:
 
         pcl::ModelCoefficients::Ptr coefficients_plane(new pcl::ModelCoefficients), coefficients_cylinder(new pcl::ModelCoefficients);
         pcl::PointIndices::Ptr inliers_plane(new pcl::PointIndices), inliers_cylinder(new pcl::PointIndices);
+
         // Do some filtering
     }
 
+    void viewerPsycho(pcl::visualization::PCLVisualizer& viewer)
+    {
+        static unsigned count = 0;
+        std::stringstream ss;
+        ss << "Once per viewer loop: " << count++;
+        viewer.removeShape("text", 0);
+        viewer.addText(ss.str(), 200, 300, "text", 0);
 
+        //FIXME: possible race condition here:
+        user_data++;
+    }
 
 
 
