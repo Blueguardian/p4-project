@@ -53,108 +53,6 @@ double dimensions;
 int user_data = 0;
 pcl::visualization::CloudViewer viewer("CloudViewer");
 
-///////////////////////////// ############# Bunglefuck below ############## /////////////////////////////////////////////
-
-class MyBungle : public IDepthDataListener
-{
-
-public:
-
-    MyBungle() :
-        undistortImage(true)
-    {
-
-        hasRun = false;
-    }
-
-    void onNewData(const DepthData* data)
-    {
-        // this callback function will be called for every new
-        std::lock_guard<std::mutex> lock(flagMutex);
-        pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);                    //creat a object cloud
-        pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
-        cloud = points2pcl(data, 242); //127(50),204(80),229(90),242(95),252(99) //this->depth_confidence 
-
-        std::vector<int> inliers;
-
-        // created RandomSampleConsensus object and compute the appropriated model
-        pcl::SampleConsensusModelSphere<pcl::PointXYZ>::Ptr model_s(new pcl::SampleConsensusModelSphere<pcl::PointXYZ>(cloud));
-
-        pcl::RandomSampleConsensus<pcl::PointXYZ> ransac(model_s);
-        ransac.setDistanceThreshold(.01);
-        ransac.computeModel();
-        ransac.getInliers(inliers);
-
-        // copies all inliers of the model computed to another PointCloud
-        pcl::copyPointCloud(*cloud, inliers, *final);
-    }
-
-    void setLensParameters(const LensParameters& lensParameters)
-    {
-        // Construct the camera matrix
-        // (fx   0    cx)
-        // (0    fy   cy)
-        // (0    0    1 )
-        Mat cameraMatrix = (Mat1d(3, 3) << lensParameters.focalLength.first, 0, lensParameters.principalPoint.first,
-            0, lensParameters.focalLength.second, lensParameters.principalPoint.second,
-            0, 0, 1);
-
-        // Construct the distortion coefficients
-        // k1 k2 p1 p2 k3
-        distortionCoefficients = (Mat1d(1, 5) << lensParameters.distortionRadial[0],
-            lensParameters.distortionRadial[1],
-            lensParameters.distortionTangential.first,
-            lensParameters.distortionTangential.second,
-            lensParameters.distortionRadial[2]);
-    }
-
-    void toggleUndistort()
-    {
-        std::lock_guard<std::mutex> lock(flagMutex);
-        undistortImage = !undistortImage;
-    }
-
-    bool hasRun;
-
-private:
-
-    float adjustZValue(float zValue)
-    {
-        float clampedDist = min(2.5f, zValue);
-        float newZValue = clampedDist / 2.5f * 255.0f;
-        return newZValue;
-    }
-
-    float adjustGrayValue(uint16_t grayValue)
-    {
-        float clampedVal = min(180.0f, grayValue * 1.0f);
-        float newGrayValue = clampedVal / 180.f * 255.0f;
-        return newGrayValue;
-    }
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
-    {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
-        cloud->is_dense = false;
-        for (size_t i = 0; i < data->points.size(); ++i) {
-            if (data->points.at(i).depthConfidence >= depthConfidence) {
-                cloud->push_back(pcl::PointXYZ(data->points.at(i).x, data->points.at(i).y, data->points.at(i).z));
-            }
-        }
-        return cloud;
-    }
-
-    // lens matrices used for the undistortion of
-    // the image
-    Mat cameraMatrix;
-    Mat distortionCoefficients;
-
-    std::mutex flagMutex;
-    bool undistortImage;
-};  //Bunglefuck
-
-///////////////////////////// ############# Bunglefuck above ############## /////////////////////////////////////////////
 
 
 class MyListener : public royale::IDepthDataListener
@@ -163,7 +61,7 @@ class MyListener : public royale::IDepthDataListener
     /**
     * Data that has been received in onNewData, and will be printed in the paint() method.
     */
-    struct MyFrameData
+    struct MyFrameData2
     {
         std::vector<uint32_t> exposureTimes;
         std::vector<std::string> asciiFrame;
@@ -192,7 +90,7 @@ public:
     */
     void onNewData(const royale::DepthData* data) override
     {
-        cout << "start" << endl;
+//        cout << "start" << endl;
         if (!isViewer) {
             
             viewer.runOnVisualizationThreadOnce(viewerOneOff);
@@ -229,7 +127,6 @@ public:
         
         cloud_filtered = cloud;
 
-        cout << "4" << endl;
         // Build a passthrough filter to remove unwanted points
        /*
         time.tic();
