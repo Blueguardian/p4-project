@@ -49,10 +49,12 @@ typedef pcl::PointCloud<PointT> PointCloudT;
 
 class RANSACHandler {
 
+public:
+
     pcl::PointCloud<PointT>::Ptr Ptcloud;
 
     RANSACHandler(pcl::PointCloud<PointT> &cloud){
-        this.Ptcloud = cloud
+        Ptcloud = cloud
     }
 
 
@@ -60,4 +62,4 @@ class RANSACHandler {
 };
 
 
-#endif P4_PROJECT_RANSACHANDLER_H
+#endif //P4_PROJECT_RANSACHANDLER_H

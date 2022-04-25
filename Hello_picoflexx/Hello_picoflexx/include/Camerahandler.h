@@ -9,10 +9,6 @@
 #include <royale.hpp>
 #include <iostream>
 #include <mutex>
-#include <opencv2/opencv.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -38,6 +34,7 @@
 
 #include <chrono>
 #include <thread>
+#include <stack>
 #include <sample_utils/PlatformResources.hpp>
 
 typedef pcl::PointXYZ PointT;
@@ -46,7 +43,6 @@ typedef pcl::PointCloud<PointT> PointCloudT;
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
-using namespace cv;
 
 class Camerahandler : public royale::IDepthDataListener
 {
@@ -54,29 +50,26 @@ class Camerahandler : public royale::IDepthDataListener
 
 public:
 
-    struct MyFrameData2
+    struct MyFrameData
     {
         std::vector<uint32_t> exposureTimes;
         std::vector<std::string> asciiFrame;
     };
 
     //Public Global fields
-    pcl::PointCloud<PointT>::Ptr PtCloud(new pcl::PointCloud<PointT>);
     std::mutex flagMutex;
     bool undistortImage;
     bool hasRun;
     Mat distortionCoefficients;
     int indx;
-    std::stack<pcl::PointCloud<PointT>::Ptr> buffer;
+    stack<pcl::PointCloud<PointT>::Ptr> buffer;
 
     //Public Method Prototypes
-    MyListener() : toggleUndistort(true);
-    void onNewData(const DepthData* data);
-    explicit MyListener(const royale::Vector<royale::StreamId>& streamIds) : m_streamIds(streamIds);
+    Camerahandler();
+    explicit Camerahandler(const royale::Vector<royale::StreamId>& streamIds);
     void onNewData(const royale::DepthData* data) override;
     void setLensParameters(const LensParameters& lensParameters);
     void toggleUndistort();
-    void debugViz(pcl::PointCloud<PointT>::Ptr &cloud)
 
 private:
     /**
@@ -94,19 +87,19 @@ private:
     bool isViewer;
 
     int vp; // Default viewport
-    float bckgr_gray_level;  // Black:=0.0
+    float bckgr_gray_level;  // Black:=0.02
     float txt_gray_lvl;
     std::array<float, 6> filter_lims; // picoflexx depth z-axis (Min ? m)
     float filt_leaf_size;
 
     //Private Method prototypes
-    pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
-    void correctCylShape(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud)
-    std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction)
-    void filter(const pcl::PointCloud<PointT>::Ptr &ptcloud)
+    pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence);
+    void correctCylShape(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
+    std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction);
+    void filter(const pcl::PointCloud<PointT>::Ptr &ptcloud);
     void Viewer(pcl::PointCloud<PointT>::Ptr cloud);
-    void viewerPsycho(pcl::visualization::PCLVisualizer& viewer)
+    void viewerPsycho(pcl::visualization::PCLVisualizer& viewer);
 };
 
 
-#endif P4_PROJECT_CAMERAHANDLER_H
+#endif //P4_PROJECT_CAMERAHANDLER_H

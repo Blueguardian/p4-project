@@ -3,10 +3,6 @@
 #include <royale.hpp>
 #include <iostream>
 #include <mutex>
-#include <opencv2/opencv.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -33,12 +29,11 @@
 #include <chrono>
 #include <thread>
 #include <sample_utils/PlatformResources.hpp>
-#include <Camerahandler.h>
+#include "Camerahandler.h"
 
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
-using namespace cv;
 
 class Camerahandler : public royale::IDepthDataListener
 {
@@ -63,7 +58,7 @@ public:
     * Creates a listener which will have callbacks from two sources - the Royale framework, when a
     * new frame is received, and the UI toolkit, when the graphics are ready to repaint.
     */
-    explicit MyListener(const royale::Vector<royale::StreamId>& streamIds) :
+    explicit Camerahandler(const royale::Vector<royale::StreamId>& streamIds) :
             m_streamIds(streamIds)
     {
     }
@@ -76,6 +71,7 @@ public:
         }
         // Pointcloud objects
         pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
+        cloud.make
         pcl::PointCloud<PointT>::Ptr cloud_filtered(new pcl::PointCloud<PointT>);
         pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
         // Transform rs2::pointcloud into pcl::PointCloud<PointT>::Ptr
@@ -143,6 +139,12 @@ private:
 
         //FIXME: possible race condition here:
         user_data++;
+    }
+
+    void toggleUndistort()
+    {
+        std::lock_guard<std::mutex> lock(flagMutex);
+        undistortImage = !undistortImage;
     }
 
 

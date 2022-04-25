@@ -2,6 +2,8 @@
 // Created by mogens on 25/04/2022.
 //
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <royale.hpp>
 #include <iostream>
 #include <mutex>

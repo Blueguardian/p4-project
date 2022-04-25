@@ -12,7 +12,7 @@ class EMGHandler {
     EMGHandler(){}
 
     bool WaitForData(){
-        return true
+        return true;
     }
 
 };
