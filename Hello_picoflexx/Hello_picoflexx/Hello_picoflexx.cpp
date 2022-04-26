@@ -3,6 +3,7 @@
 #include <royale.hpp>
 #include <iostream>
 #include <mutex>
+
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/common/projection_matrix.h>
@@ -48,8 +49,6 @@ int user_data = 0;
 pcl::visualization::CloudViewer viewer("CloudViewer");
 
 
-
-
 class MyListener : public royale::IDepthDataListener
 {
 
@@ -57,7 +56,7 @@ class MyListener : public royale::IDepthDataListener
     /**
     * Data that has been received in onNewData, and will be printed in the paint() method.
     */
-    struct MyFrameData
+    struct MyFrameData2
     {
         std::vector<uint32_t> exposureTimes;
         std::vector<std::string> asciiFrame;
@@ -83,7 +82,7 @@ public:
     */
     void onNewData(const royale::DepthData* data) override
     {
-        cout << "start" << endl;
+//        cout << "start" << endl;
         if (!isViewer) {
             
             viewer.runOnVisualizationThreadOnce(viewerOneOff);
@@ -120,7 +119,6 @@ public:
         
         cloud_filtered = cloud;
 
-        cout << "4" << endl;
         // Build a passthrough filter to remove unwanted points
        /*
         time.tic();
@@ -219,7 +217,7 @@ public:
             pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cylinder_color_h(cloud_cylinder, 180, 20, 20);
             viewer.showCloud(cloud_filtered, "cloud_cylinder");
 
-           // viewer.runOnVisualizationThread(viewerPsycho);
+           viewer.runOnVisualizationThread(viewerPsycho);
             
             // Plot cylinder shape
             //pcl::ModelCoefficients::Ptr corrected_coefs_cylinder(new pcl::ModelCoefficients);
