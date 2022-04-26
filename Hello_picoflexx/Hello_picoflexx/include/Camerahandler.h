@@ -60,7 +60,7 @@ public:
     std::mutex flagMutex;
     bool undistortImage;
     bool hasRun;
-    Mat distortionCoefficients;
+    //Mat distortionCoefficients;
     int indx;
     stack<pcl::PointCloud<PointT>::Ptr> buffer;
 

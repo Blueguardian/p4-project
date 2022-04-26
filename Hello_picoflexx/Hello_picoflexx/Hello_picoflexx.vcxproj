@@ -29,26 +29,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -116,15 +116,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Program Files\royale\4.18.0.261\include;C:\Program Files\royale\4.18.0.261\samples\inc</AdditionalIncludeDirectories>
-      <AdditionalUsingDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Program Files\royale\4.18.0.261\include;C:\Program Files\royale\4.18.0.261\samples\inc</AdditionalUsingDirectories>
+      <AdditionalIncludeDirectories>C:\Users\jacob\p4\p4-project\Hello_picoflexx\Hello_picoflexx\include;C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Program Files\royale\4.18.0.261\include;C:\Program Files\royale\4.18.0.261\samples\inc</AdditionalIncludeDirectories>
+      <AdditionalUsingDirectories>C:\Users\jacob\p4\p4-project\Hello_picoflexx\Hello_picoflexx\include;C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Program Files\royale\4.18.0.261\include;C:\Program Files\royale\4.18.0.261\samples\inc</AdditionalUsingDirectories>
       <AdditionalOptions>/arch:AVX2 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\lib;C:\Program Files\PCL 1.12.1\3rdParty\Boost\lib;C:\Program Files\PCL 1.12.1\3rdParty\VTK\lib;C:\Program Files\PCL 1.12.1\lib;C:\Program Files\royale\4.18.0.261\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>"C:\Program Files\PCL 1.12.1\3rdParty\FLANN\lib\*d.lib";"C:\Program Files\PCL 1.12.1\3rdParty\Boost\lib\*d.lib";"C:\Program Files\PCL 1.12.1\lib\*d.lib";"C:\Program Files\PCL 1.12.1\3rdParty\VTK\lib\*d.lib";opencv_world455d.lib;royale.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>"C:\Program Files\PCL 1.12.1\3rdParty\FLANN\lib\*d.lib";"C:\Program Files\PCL 1.12.1\3rdParty\Boost\lib\*d.lib";"C:\Program Files\PCL 1.12.1\lib\*d.lib";"C:\Program Files\PCL 1.12.1\3rdParty\VTK\lib\*d.lib";royale.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

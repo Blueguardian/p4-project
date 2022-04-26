@@ -8,10 +8,6 @@
 #include <royale.hpp>
 #include <iostream>
 #include <mutex>
-#include <opencv2/opencv.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -42,7 +38,6 @@
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
-using namespace cv;
 
 typedef pcl::PointXYZ PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
@@ -54,7 +49,7 @@ public:
     pcl::PointCloud<PointT>::Ptr Ptcloud;
 
     RANSACHandler(pcl::PointCloud<PointT> &cloud){
-        Ptcloud = cloud
+        Ptcloud = cloud;
     }
 
 
