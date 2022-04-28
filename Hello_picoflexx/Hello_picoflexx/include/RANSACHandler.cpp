@@ -11,7 +11,7 @@ RANSACHandler::RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud) {
     Ptcloud = cloud;
 }
 
-double* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients& p1, const pcl::ModelCoefficients& p2, const pcl::ModelCoefficients& p3) {
+double* RANSACHandler::shape_box(const int nPlanes) {
     //for loop with runs the amount of planes
     double boxDim[2];                   //boxDim[0] = width; BoxDim[1] = hight
     double planes[3][4];
@@ -340,7 +340,7 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
     return boxRatio;
 }
 
-float RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients_sph) {
+float RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
     pcl::NormalEstimation<PointT, pcl::Normal> ne;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in;
     cloud_in = cloud;
