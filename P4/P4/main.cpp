@@ -34,6 +34,7 @@
 //#include <EMGHandler.cpp>
 #include "Camerahandler.h"
 
+#include <conio.h>
 #include <chrono>
 #include <thread>
 #include <sample_utils/PlatformResources.hpp>
@@ -82,13 +83,9 @@ int main(int argc, char* argv[])
     cameraDevice->startCapture();
     // register a data listener
 
-    int currentKey = 0;
-    while (currentKey != 27)
+    while (! _kbhit()) // wait until a key is pressed
     {
-        // wait until a key is pressed
-        // currentKey = waitKey(1);
 
-        currentKey = getchar();
 
     }
     cameraDevice->stopCapture();
