@@ -86,7 +86,7 @@ Camerahandler::Camerahandler()
 
         else if (cloud->size() > 0 && indx < 10) {
             filter(cloud);
-            //buffer.push(cloud);
+            buffer.push(cloud);
             indx++;
         }
         else {
@@ -110,12 +110,7 @@ Camerahandler::Camerahandler()
 
     void Camerahandler::viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud)
     {
-        static unsigned count = 0;
-        std::stringstream ss;
-        ss << "Once per viewer loop: " << count++;
-
-        viewer.showCloud(cloud, "cloud");
-
+    viewer.showCloud(cloud, "cloud");
     }
 
     void Camerahandler::filter(const pcl::PointCloud<PointT>::Ptr& ptcloud)
