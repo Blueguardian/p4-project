@@ -32,9 +32,8 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
-#include <RANSACHandler.cpp>
-#include <EMGHandler.cpp>
-#include <Camerahandler.h>
+
+
 
 #include <chrono>
 #include <thread>
@@ -71,9 +70,13 @@ public:
     float dotProduct(pcl::PointXYZ a, pcl::PointXYZ b);
     float normPointT(pcl::PointXYZ c);
 
-    float check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients_cylinder);
+    float check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
     float check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr& coefficients_planes1, pcl::ModelCoefficients::Ptr& coefficients_planes3, pcl::ModelCoefficients::Ptr& coefficients_planes2);
     float check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients_sph);
+
+private:
+    
+
 };
 
 

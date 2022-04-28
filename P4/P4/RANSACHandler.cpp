@@ -2,13 +2,18 @@
 // Created by mogens on 25/04/2022.
 //
 
+
+
 #include "RANSACHandler.h"
+
+pcl::ModelCoefficients::Ptr coefficients_sphere(new pcl::ModelCoefficients);
+pcl::ModelCoefficients::Ptr coefficients_box(new pcl::ModelCoefficients);
+pcl::ModelCoefficients::Ptr coefficients_cylinder(new pcl::ModelCoefficients);
+pcl::PointIndices :: Ptr inliers_cylinder;
 
 RANSACHandler::RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud) {
     Ptcloud = cloud;
-    pcl::ModelCoefficients::Ptr coefficients_sphere(new pcl::ModelCoefficients);
-    pcl::ModelCoefficients::Ptr coefficients_box(new pcl::ModelCoefficients);
-    pcl::ModelCoefficients::Ptr coefficients_cylinder(new pcl::ModelCoefficients);
+    
 }
 
 double* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients& p1, const pcl::ModelCoefficients& p2, const pcl::ModelCoefficients& p3) {
@@ -47,13 +52,13 @@ double* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients
     }
 
 
-    for (int i = 0, int j = nPlanes - 1; i < j; ++i) {                    //3 planes = 2 runs
+    for (int i = 0, j = nPlanes - 1; i < j; ++i) {                    //3 planes = 2 runs
 
         //define normal vectors
-        long double p1_nx, p1_ny, p1_nz, p2_nx, p2_ny, p2_nz;
+        double p1_nx, p1_ny, p1_nz, p2_nx, p2_ny, p2_nz;
 
         //define length and angle variables
-        long double c_angle, c_length, a_angle, a_length;
+        double c_length, a_angle, a_length;
 
         //find normal vectors positions
         p1_nx = planes[i][0] / (sqrt(pow(planes[i][0], 2) + pow(planes[i][1], 2) + pow(planes[i][2], 2)));
@@ -182,7 +187,7 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
     return std::sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
 }
 
-float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients_cylinder){
+float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud){
     pcl::NormalEstimation<PointT, pcl::Normal> ne;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in;
     cloud_in = cloud;
@@ -190,8 +195,6 @@ float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::
     pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_cylinder;
     pcl::ExtractIndices<PointT> extract_cylinder;
     pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
-    pcl::ModelCoefficients::Ptr coefficients_cylinder(new pcl::ModelCoefficients);
-    pcl::PointIndices::Ptr inliers_cylinder(new pcl::PointIndices);
 
     ne.setSearchMethod(tree);
     ne.setInputCloud(cloud_in);
@@ -222,7 +225,9 @@ float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::
     return cylinderRatio;
 }
 
-float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr& coefficients_planes1, pcl::ModelCoefficients::Ptr& coefficients_planes3, pcl::ModelCoefficients::Ptr& coefficients_planes2) {
+
+
+float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr& coefficients_planes1, pcl::ModelCoefficients::Ptr& coefficients_planes2, pcl::ModelCoefficients::Ptr& coefficients_planes3) {
 
 
     std::array<pcl::ModelCoefficients::Ptr, 3> plane_coe_array;

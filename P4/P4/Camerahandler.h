@@ -38,6 +38,9 @@
 #include <thread>
 #include <stack>
 #include <sample_utils/PlatformResources.hpp>
+#include <RANSACHandler.h>
+
+
 
 #pragma once
 
@@ -89,14 +92,14 @@ private:
     int vp; // Default viewport
     float bckgr_gray_level;  // Black:=0.02
     float txt_gray_lvl;
-    std::array<float, 6> filter_lims; // picoflexx depth z-axis (Min ? m)
-    float filt_leaf_size;
+    //std::array<float, 6> filter_lims; // picoflexx depth z-axis (Min ? m)
+    //float filt_leaf_size;
     //const royale::Vector<royale::StreamId> m_streamIds;
 
     //Private Method prototypes
     pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence);
 
-    void filter(const pcl::PointCloud<PointT>::Ptr& ptcloud);
+    void XYZfilter(pcl::PointCloud<PointT>::Ptr& ptcloud);
     void viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud);
     void viewerOneOff(pcl::visualization::CloudViewer& viewer);
 };

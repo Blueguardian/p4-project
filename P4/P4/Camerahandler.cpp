@@ -27,6 +27,7 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/impl/pcl_base.hpp>
 
 #include <chrono>
 #include <thread>
@@ -43,12 +44,11 @@ pcl::visualization::CloudViewer viewer("CloudViewer");
 Camerahandler::Camerahandler()
     {
         hasRun = false;
-        float filt_leaf_size = 0.005;
-        std::array<float, 6> filter_lims = { -0.0050, 0.0050, -0.0050, 0.0050, 0.000, 0.0150 }; // x-min, x-max, y-min, y-max, z-min, z-max
         float bckgr_gray_level = 1.0;  // Black:=0.0
         float txt_gray_lvl = 1.0 - bckgr_gray_level;
         int vp = 0; // Default viewport
         bool isViewer = false;
+
     }
 
     /**
@@ -68,8 +68,25 @@ Camerahandler::Camerahandler()
         // Pointcloud objects
         pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
         cloud = points2pcl(data, 242); //127(50),204(80),229(90),242(95),252(99) //this->depth_confidence
+        RANSACHandler Ransacer(cloud);
         std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
-        
+
+        if (cloud->size() == 0)
+        {
+            return;
+        }
+
+        else if (cloud->size() > 0) {
+            filt(cloud);
+            buffer.push(cloud);
+            indx++;
+        }
+
+        if (cloud->size() == 0)
+        {
+            return;
+        }
+
         if (!isViewer) {
             viewerOneOff(viewer);
             viewerUpdate(viewer, cloud);
@@ -78,20 +95,10 @@ Camerahandler::Camerahandler()
         else {
             viewerUpdate(viewer, cloud);
         }
-
-        if (cloud->size() == 0)
-        {
-            return;
-        }
-
-        else if (cloud->size() > 0 && indx < 10) {
-            filter(cloud);
-            buffer.push(cloud);
-            indx++;
-        }
-        else {
-
-        }
+        float cylinder_ratio = Ransacer.check_cyl(cloud);
+        std::cout << cylinder_ratio << endl;
+        //Ransacer.shape_cyl();
+        
     }
     /**
     * The StreamIds for all streams that are expected to be received.  For this example, it's a
@@ -113,8 +120,11 @@ Camerahandler::Camerahandler()
     viewer.showCloud(cloud, "cloud");
     }
 
-    void Camerahandler::filter(const pcl::PointCloud<PointT>::Ptr& ptcloud)
+    void Camerahandler::XYZfilter(pcl::PointCloud<PointT>::Ptr& ptcloud)
     {
+
+        float filt_leaf_size = 0.005;
+        std::array<float, 6> filter_lims = { -0.50, 0.50, -0.50, 0.50, 0.000, 0.50 }; // x-min, x-max, y-min, y-max, z-min, z-max
         pcl::PassThrough<PointT> pass(true);
 
         pass.setInputCloud(ptcloud);
@@ -134,9 +144,34 @@ Camerahandler::Camerahandler()
 
         pcl::VoxelGrid<pcl::PointXYZ> dsfilt;
         dsfilt.setInputCloud(ptcloud);
-        dsfilt.setLeafSize(this->filt_leaf_size, this->filt_leaf_size, this->filt_leaf_size);
+        dsfilt.setLeafSize(filt_leaf_size, filt_leaf_size, filt_leaf_size);
         dsfilt.filter(*ptcloud);
         std::cerr << "PointCloud after downsampling: " << ptcloud->width * ptcloud->height << " data points." << std::endl;
+    }
+
+    void filt(pcl::PointCloud<PointT>::Ptr& output) 
+    {
+        if (!initCompute())
+            return;
+
+        if (input_.get() == &output)  // cloud_in = cloud_out
+        {
+            PointCloud output_temp;
+            applyFilter(output_temp);
+            output_temp.header = input_->header;
+            output_temp.sensor_origin_ = input_->sensor_origin_;
+            output_temp.sensor_orientation_ = input_->sensor_orientation_;
+            pcl::copyPointCloud(output_temp, output);
+        }
+        else
+        {
+            output.header = input_->header;
+            output.sensor_origin_ = input_->sensor_origin_;
+            output.sensor_orientation_ = input_->sensor_orientation_;
+            applyFilter(output);
+        }
+
+        deinitCompute();
     }
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::DepthData* data, uint8_t depthConfidence)

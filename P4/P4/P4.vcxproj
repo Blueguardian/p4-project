@@ -116,9 +116,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Program Files\royale\4.18.0.261\include;C:\Program Files\royale\4.18.0.261\samples\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Program Files\royale\4.18.0.261\include;C:\Program Files\royale\4.18.0.261\samples\inc;C:\Users\Johsb\Desktop\Skoleting\Robotteknologi 09-2020 -\4.Semester\Projekt\p4-project\P4\P4;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -146,10 +147,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Camerahandler.h" />
+    <ClInclude Include="EMGHandler.h" />
+    <ClInclude Include="RANSACHandler.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camerahandler.cpp" />
+    <ClCompile Include="EMGHandler.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="RANSACHandler.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
