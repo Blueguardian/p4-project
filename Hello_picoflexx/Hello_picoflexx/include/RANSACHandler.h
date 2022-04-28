@@ -9,7 +9,6 @@
 #include <iostream>
 #include <mutex>
 
-
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/common/projection_matrix.h>
@@ -37,6 +36,7 @@
 #include <sample_utils/PlatformResources.hpp>
 
 using namespace royale;
+using namespace sample_utils;
 using namespace std;
 
 typedef pcl::PointXYZ PointT;
@@ -48,9 +48,12 @@ public:
 
     pcl::PointCloud<PointT>::Ptr Ptcloud;
 
-    RANSACHandler(pcl::PointCloud<PointT>::Ptr &cloud){
-        Ptcloud = cloud
+    RANSACHandler(pcl::PointCloud<PointT> &cloud){
+        Ptcloud = cloud;
     }
+
+
+
 };
 
 
