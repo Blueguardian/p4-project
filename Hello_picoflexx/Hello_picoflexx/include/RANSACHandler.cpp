@@ -4,11 +4,11 @@
 
 #include "RANSACHandler.h"
 
+pcl::ModelCoefficients::Ptr coefficients_sphere(new pcl::ModelCoefficients), coefficients_p1(new pcl::ModelCoefficients), coefficients_p2(new pcl::ModelCoefficients), coefficients_p3(new pcl::ModelCoefficients), coefficients_cylinder(new pcl::ModelCoefficients);
+pcl::PointIndices::Ptr inliers_cylinder(new pcl::PointIndices), inliers_sphere(new pcl::PointIndices), inliers_plane1(new pcl::PointIndices), inliers_plane2(new pcl::PointIndices), inlers_plane3(new pcl::PointIndices); 
+
 RANSACHandler::RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud) {
     Ptcloud = cloud;
-    pcl::ModelCoefficients::Ptr coefficients_sphere(new pcl::ModelCoefficients);
-    pcl::ModelCoefficients::Ptr coefficients_box(new pcl::ModelCoefficients);
-    pcl::ModelCoefficients::Ptr coefficients_cylinder(new pcl::ModelCoefficients);
 }
 
 double* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients& p1, const pcl::ModelCoefficients& p2, const pcl::ModelCoefficients& p3) {
@@ -66,8 +66,8 @@ double* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients
 
         //cout << myShape << "-" << i << "; 1nx" << p1_nx << "; 1ny: " << p1_ny << "; 1nz: " << p1_nz << "; 2nx: " << p2_nx << "; 2ny: " << p2_ny << "; 2nz: " << p2_nz << std::endl;
 
-        //C_angle = invCos((n_A ° n_B )  /  (n_A| * | n_B| ))
-        //note ° = dotproduct [ a.x* b.x + a.y * b.y + a.z * b.z ]
+        //C_angle = invCos((n_A Â° n_B )  /  (n_A| * | n_B| ))
+        //note Â° = dotproduct [ a.x* b.x + a.y * b.y + a.z * b.z ]
 
         long double plane_dotProduct = (p1_nx * p2_nx) + (p1_ny * p2_ny) + (p1_nz * p2_nz);
         long double p1_length = sqrt((pow(p1_nx, 2) + pow(p1_ny, 2) + pow(p1_nz, 2)));
@@ -126,7 +126,7 @@ double* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients
     return boxDim;
 }
 
-void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud)
+void RANSACHandler::shape_cyl(const pcl::PointCloud<PointT>& cloud)
 {
     pcl::PointXYZ p_axis(coefficients.values[0], coefficients.values[1], coefficients.values[2]);
     pcl::PointXYZ axis(coefficients.values[3], coefficients.values[4], coefficients.values[5]);
@@ -182,7 +182,7 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
     return std::sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
 }
 
-float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients_cylinder){
+float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud){
     pcl::NormalEstimation<PointT, pcl::Normal> ne;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in;
     cloud_in = cloud;
@@ -222,7 +222,7 @@ float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::
     return cylinderRatio;
 }
 
-float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr& coefficients_planes1, pcl::ModelCoefficients::Ptr& coefficients_planes3, pcl::ModelCoefficients::Ptr& coefficients_planes2) {
+float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
 
 
     std::array<pcl::ModelCoefficients::Ptr, 3> plane_coe_array;
@@ -247,7 +247,7 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::
     pcl::ExtractIndices<PointT> extract_box;
     pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
 
-    pcl::PointIndices::Ptr inliers_plane1(new pcl::PointIndices), inliers_plane2(new pcl::PointIndices), inliers_plane3(new pcl::PointIndices);
+    pcl::PointIndices::Ptr inliers_plane1(new pcl::PointIndices), (new pcl::PointIndices), inliers_plane3(new pcl::PointIndices);
 
     ne.setSearchMethod(tree);
     ne.setInputCloud(cloud_in);
