@@ -37,13 +37,14 @@ using namespace royale;
 using namespace sample_utils;
 using namespace std;
 
+pcl::visualization::CloudViewer viewer("CloudViewer");
     
 
 Camerahandler::Camerahandler()
     {
         hasRun = false;
         float filt_leaf_size = 0.005;
-        std::array<float, 6> filter_lims = { -0.050, 0.050, -0.050, 0.050, 0.000, 0.150 };
+        std::array<float, 6> filter_lims = { -0.0050, 0.0050, -0.0050, 0.0050, 0.000, 0.0150 }; // x-min, x-max, y-min, y-max, z-min, z-max
         float bckgr_gray_level = 1.0;  // Black:=0.0
         float txt_gray_lvl = 1.0 - bckgr_gray_level;
         int vp = 0; // Default viewport
@@ -62,15 +63,21 @@ Camerahandler::Camerahandler()
     */
 
     void Camerahandler :: onNewData(const royale::DepthData* data)  {
-        if (!isViewer) {  
-            isViewer = true;
-        }
-        pcl::visualization::CloudViewer viewer("CloudViewer");
+        
+        
         // Pointcloud objects
         pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
         cloud = points2pcl(data, 242); //127(50),204(80),229(90),242(95),252(99) //this->depth_confidence
         std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
-        //viewer.showCloud(cloud, "cloud");
+        
+        if (!isViewer) {
+            viewerOneOff(viewer);
+            viewerUpdate(viewer, cloud);
+            isViewer = true;
+        }
+        else {
+            viewerUpdate(viewer, cloud);
+        }
 
         if (cloud->size() == 0)
         {
@@ -92,18 +99,24 @@ Camerahandler::Camerahandler()
     */
    
 
-    void Camerahandler::initViewer()
-    {  
+    void Camerahandler::viewerOneOff(pcl::visualization::CloudViewer& viewer)
+    {
+        pcl::PointXYZ o;
+        o.x = 1.0;
+        o.y = 0;
+        o.z = 0;
+        std::cout << "i only run once" << std::endl;
     }
 
-    void Camerahandler::viewer(pcl::PointCloud<PointT>::Ptr cloud)
-    {     
-    }
+    void Camerahandler::viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud)
+    {
+        static unsigned count = 0;
+        std::stringstream ss;
+        ss << "Once per viewer loop: " << count++;
 
-    /**
-    * Updated in each call to onNewData, for each stream it contains the most recently received
-    * frame.  Should only be accessed with m_lockForReceivedData held.
-    */
+        viewer.showCloud(cloud, "cloud");
+
+    }
 
     void Camerahandler::filter(const pcl::PointCloud<PointT>::Ptr& ptcloud)
     {

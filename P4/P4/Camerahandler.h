@@ -97,10 +97,8 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence);
 
     void filter(const pcl::PointCloud<PointT>::Ptr& ptcloud);
-    void initViewer();
-    void viewer(pcl::PointCloud<PointT>::Ptr cloud);
-
-
+    void viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud);
+    void viewerOneOff(pcl::visualization::CloudViewer& viewer);
 };
 
 
