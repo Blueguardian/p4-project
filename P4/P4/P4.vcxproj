@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{e9f06e53-04d0-43f4-a613-a35b347bcdeb}</ProjectGuid>
-    <RootNamespace>Hellopicoflexx</RootNamespace>
+    <ProjectGuid>{af0392f7-7f2e-4185-b7d2-2a2fb708e252}</ProjectGuid>
+    <RootNamespace>P4</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -116,15 +116,16 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Johsb\Desktop\Skoleting\Robotteknologi 09-2020 -\4.Semester\Projekt\p4-project\Hello_picoflexx\Hello_picoflexx\include;C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Program Files\royale\4.18.0.261\include;C:\Program Files\royale\4.18.0.261\samples\inc</AdditionalIncludeDirectories>
-      <AdditionalUsingDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Program Files\royale\4.18.0.261\include;C:\Program Files\royale\4.18.0.261\samples\inc</AdditionalUsingDirectories>
-      <AdditionalOptions>/arch:AVX2 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Program Files\royale\4.18.0.261\include;C:\Program Files\royale\4.18.0.261\samples\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\lib;C:\Program Files\PCL 1.12.1\3rdParty\Boost\lib;C:\Program Files\PCL 1.12.1\3rdParty\VTK\lib;C:\Program Files\PCL 1.12.1\lib;C:\Program Files\royale\4.18.0.261\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>"C:\Program Files\PCL 1.12.1\3rdParty\FLANN\lib\*d.lib";"C:\Program Files\PCL 1.12.1\3rdParty\Boost\lib\*d.lib";"C:\Program Files\PCL 1.12.1\lib\*d.lib";"C:\Program Files\PCL 1.12.1\3rdParty\VTK\lib\*d.lib";royale.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/arch:AVX2 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -135,19 +136,19 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Users\Johsb\Desktop\Skoleting\Robotteknologi 09-2020 -\4.Semester\opencv\build\include;C:\Program Files\royale\4.17.0.113\include;C:\Program Files\royale\4.17.0.113\samples\inc</AdditionalIncludeDirectories>
-      <AdditionalUsingDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Users\Johsb\Desktop\Skoleting\Robotteknologi 09-2020 -\4.Semester\opencv\build\include;C:\Program Files\royale\4.17.0.113\include;C:\Program Files\royale\4.17.0.113\samples\inc</AdditionalUsingDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>"C:\Program Files\PCL 1.12.1\3rdParty\FLANN\lib\*d.lib";"C:\Program Files\PCL 1.12.1\3rdParty\Boost\lib\*d.lib";"C:\Program Files\PCL 1.12.1\lib\*d.lib";"C:\Program Files\PCL 1.12.1\3rdParty\VTK\lib\*d.lib";opencv_world455d.lib;royale.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\lib;C:\Program Files\PCL 1.12.1\lib;C:\Program Files\PCL 1.12.1\3rdParty\VTK\lib;C:\Users\Johsb\Desktop\Skoleting\Robotteknologi 09-2020 -\4.Semester\opencv\build\x64\vc15\lib;C:\Program Files\PCL 1.12.1\3rdParty\Boost\lib;C:\Program Files\royale\4.17.0.113\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Camerahandler.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Camerahandler.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

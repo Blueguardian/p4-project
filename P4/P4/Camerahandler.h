@@ -1,8 +1,12 @@
+
 //
 // Created by mogens on 25/04/2022.
 //
-
 #define _CRT_SECURE_NO_WARNINGS
+
+#ifndef P4_PROJECT_CAMERAHANDLER_H
+#define P4_PROJECT_CAMERAHANDLER_H
+
 
 #include <royale.hpp>
 #include <iostream>
@@ -30,67 +34,76 @@
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
 
-//#include <RANSACHandler.cpp>
-//#include <EMGHandler.cpp>
-#include <Camerahandler.h>
-
 #include <chrono>
 #include <thread>
+#include <stack>
 #include <sample_utils/PlatformResources.hpp>
+
+#pragma once
+
+typedef pcl::PointXYZ PointT;
+typedef pcl::PointCloud<PointT> PointCloudT;
 
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
 
-typedef pcl::PointXYZ PointT;
-typedef pcl::PointCloud<PointT> PointCloudT;
-
-int main (int argc, char *argv[])
+class Camerahandler : public royale::IDepthDataListener
 {
-    // Windows requires that the application allocate these, not the DLL.
-    PlatformResources resources;
+public:
 
-    // This is the data listener which will receive callbacks.  It's declared
-    // before the cameraDevice so that, if this function exits with a 'return'
-    // statement while the camera is still capturing, it will still be in scope
-    // until the cameraDevice's destructor implicitly de-registers the listener.
-    Camerahandler camhandle;
+    //public fields
+    std::mutex flagMutex;
+    bool undistortImage;
+    bool hasRun;
+    int indx;
+    std::stack<pcl::PointCloud<PointT>::Ptr> buffer;
 
-    // this represents the main camera device object
-    std::unique_ptr<ICameraDevice> cameraDevice;
+    //Public Method Prototypes
+    Camerahandler();
+    explicit Camerahandler(const royale::Vector<royale::StreamId>& streamIds);
+    void onNewData(const royale::DepthData* data) override;
 
-    CameraManager manager;
+private:
+    /**
+    * The StreamIds for all streams that are expected to be received.  For this example, it's a
+    * constant set, so doesn't need protecting with a mutex.
+    */
+    const royale::Vector<royale::StreamId> m_streamIds;
 
-    royale::Vector<royale::String> camlist(manager.getConnectedCameraList());
-    cout << "Detected " << camlist.size() << " camera(s)." << endl;
+    /**
+    * Updated in each call to onNewData, for each stream it contains the most recently received
+    * frame.  Should only be accessed with m_lockForReceivedData held.
+    */
 
-    if (!camlist.empty())
+    struct MyFrameData
     {
-        cameraDevice = manager.createCamera(camlist[0]);
-    }
-    // the camera device is now available and CameraManager can be deallocated here
+        std::vector<uint32_t> exposureTimes;
+        std::vector<std::string> asciiFrame;
+    };
 
-    // IMPORTANT: call the initialize method before working with the camera device
-    auto status = cameraDevice->initialize();
+    std::map<royale::StreamId, MyFrameData> m_receivedData;
+    std::mutex m_lockForReceivedData;
+    bool isViewer;
 
-    // retrieve the lens parameters from Royale
-    // LensParameters lensParameters;
-    // status = cameraDevice->getLensParameters(lensParameters);
-    // camhandle.setLensParameters(lensParameters);
+    int vp; // Default viewport
+    float bckgr_gray_level;  // Black:=0.02
+    float txt_gray_lvl;
+    std::array<float, 6> filter_lims; // picoflexx depth z-axis (Min ? m)
+    float filt_leaf_size;
+    //const royale::Vector<royale::StreamId> m_streamIds;
 
-    cameraDevice->registerDataListener(&camhandle);
-    cameraDevice->startCapture();
-    // register a data listener
+    //Private Method prototypes
+    pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence);
 
-    int currentKey = 0;
-    while (currentKey != 27)
-    {
-        // wait until a key is pressed
-        // currentKey = waitKey(1);
+    void filter(const pcl::PointCloud<PointT>::Ptr& ptcloud);
+    void initViewer();
+    void viewer(pcl::PointCloud<PointT>::Ptr cloud);
 
-        currentKey = getchar();
-       
-    }
-    cameraDevice->stopCapture();
-    return 0;
-}
+
+};
+
+
+#endif //P4_PROJECT_CAMERAHANDLER_H
+
+

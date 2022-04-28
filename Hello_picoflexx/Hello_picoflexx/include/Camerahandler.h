@@ -50,26 +50,10 @@ class Camerahandler : public royale::IDepthDataListener
 
 public:
 
-    struct MyFrameData
-    {
-        std::vector<uint32_t> exposureTimes;
-        std::vector<std::string> asciiFrame;
-    };
-
-    //Public Global fields
-    std::mutex flagMutex;
-    bool undistortImage;
-    bool hasRun;
-    Mat distortionCoefficients;
-    int indx;
-    stack<pcl::PointCloud<PointT>::Ptr> buffer;
-
     //Public Method Prototypes
-    Camerahandler();
+    Camerahandler(bool vis  = true);
     explicit Camerahandler(const royale::Vector<royale::StreamId>& streamIds);
     void onNewData(const royale::DepthData* data) override;
-    void setLensParameters(const LensParameters& lensParameters);
-    void toggleUndistort();
 
 private:
     /**
@@ -82,23 +66,16 @@ private:
     * Updated in each call to onNewData, for each stream it contains the most recently received
     * frame.  Should only be accessed with m_lockForReceivedData held.
     */
-    std::map<royale::StreamId, MyFrameData> m_receivedData;
-    std::mutex m_lockForReceivedData;
-    bool isViewer;
-
-    int vp; // Default viewport
-    float bckgr_gray_level;  // Black:=0.02
-    float txt_gray_lvl;
-    std::array<float, 6> filter_lims; // picoflexx depth z-axis (Min ? m)
-    float filt_leaf_size;
+    
 
     //Private Method prototypes
     pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence);
-    void correctCylShape(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
-    std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction);
+    
     void filter(const pcl::PointCloud<PointT>::Ptr &ptcloud);
-    void Viewer(pcl::PointCloud<PointT>::Ptr cloud);
-    void viewerPsycho(pcl::visualization::PCLVisualizer& viewer);
+    void initViewer();
+    void viewer(pcl::PointCloud<PointT>::Ptr cloud);
+
+    
 };
 
 

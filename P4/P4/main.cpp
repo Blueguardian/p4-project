@@ -32,7 +32,7 @@
 
 //#include <RANSACHandler.cpp>
 //#include <EMGHandler.cpp>
-#include <Camerahandler.h>
+#include "Camerahandler.h"
 
 #include <chrono>
 #include <thread>
@@ -45,7 +45,7 @@ using namespace std;
 typedef pcl::PointXYZ PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
 
-int main (int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Windows requires that the application allocate these, not the DLL.
     PlatformResources resources;
@@ -89,7 +89,7 @@ int main (int argc, char *argv[])
         // currentKey = waitKey(1);
 
         currentKey = getchar();
-       
+
     }
     cameraDevice->stopCapture();
     return 0;

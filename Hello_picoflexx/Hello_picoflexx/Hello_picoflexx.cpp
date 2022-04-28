@@ -33,8 +33,6 @@
 typedef pcl::PointXYZ PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
 
-void correctCylShape(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
-std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction);
 float normPointT(pcl::PointXYZ c);
 float dotProduct(pcl::PointXYZ a, pcl::PointXYZ b);
 void viewerPsycho(pcl::visualization::PCLVisualizer& viewer);
@@ -52,7 +50,7 @@ pcl::visualization::CloudViewer viewer("CloudViewer");
 class MyListener : public royale::IDepthDataListener
 {
 
-   
+
     /**
     * Data that has been received in onNewData, and will be printed in the paint() method.
     */
@@ -82,9 +80,9 @@ public:
     */
     void onNewData(const royale::DepthData* data) override
     {
-//        cout << "start" << endl;
+        //        cout << "start" << endl;
         if (!isViewer) {
-            
+
             viewer.runOnVisualizationThreadOnce(viewerOneOff);
             isViewer = true;
         }
@@ -116,7 +114,7 @@ public:
 
         pcl::ModelCoefficients::Ptr coefficients_plane(new pcl::ModelCoefficients), coefficients_cylinder(new pcl::ModelCoefficients);
         pcl::PointIndices::Ptr inliers_plane(new pcl::PointIndices), inliers_cylinder(new pcl::PointIndices);
-        
+
         cloud_filtered = cloud;
 
         // Build a passthrough filter to remove unwanted points
@@ -132,7 +130,7 @@ public:
         catch (const std::exception& ex) {
             cout << "1" << endl;
             cerr << ex.what() << endl;
-            
+
         }
 
         pass.setInputCloud(cloud_filtered);
@@ -146,23 +144,23 @@ public:
             cout << "2" << endl;
             cerr << ex.what() << endl;
         }
-        
+
         pass.setInputCloud(cloud_filtered);
         pass.setFilterFieldName("z");
         pass.setFilterLimits(filter_lims[4], filter_lims[5]);
         try {
             pass.filter(*cloud_filtered);
         }
-        
+
         catch (const std::exception& ex) {
             cout << "3" << endl;
             cerr << ex.what() << endl;
         }
-        
+
         */
-       
+
         std::cerr << "PointCloud after filtering: " << cloud_filtered->points.size() << " data points." << std::endl;
-        
+
         // Downsampling the filtered point cloud
         pcl::VoxelGrid<pcl::PointXYZ> dsfilt;
         dsfilt.setInputCloud(cloud_filtered);
@@ -173,7 +171,7 @@ public:
         // Draw filtered PointCloud
         pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_filtered_in_color_h(cloud, (int)255 * txt_gray_lvl, (int)255 * txt_gray_lvl,
             (int)255 * txt_gray_lvl);
-        
+
         cout << "5" << endl;
         // Estimate point normals
         ne.setSearchMethod(tree);
@@ -202,12 +200,12 @@ public:
         extract.setInputCloud(cloud_filtered);
         extract.setIndices(inliers_cylinder);
         extract.setNegative(false);
-        
+
         extract.filter(*cloud_cylinder);
         cout << "7" << endl;
         */
         pcl::PointCloud<PointT>::Ptr cloud_cylinder(new pcl::PointCloud<PointT>());
-        if ( !cloud_cylinder->points.empty()) {
+        if (!cloud_cylinder->points.empty()) {
             std::cerr << "\nCan't find the cylindrical component";
         }
         else {
@@ -217,8 +215,8 @@ public:
             pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cylinder_color_h(cloud_cylinder, 180, 20, 20);
             viewer.showCloud(cloud_filtered, "cloud_cylinder");
 
-           viewer.runOnVisualizationThread(viewerPsycho);
-            
+            viewer.runOnVisualizationThread(viewerPsycho);
+
             // Plot cylinder shape
             //pcl::ModelCoefficients::Ptr corrected_coefs_cylinder(new pcl::ModelCoefficients);
             //correctCylShape(*corrected_coefs_cylinder, *coefficients_cylinder, *cloud_cylinder);
@@ -232,15 +230,15 @@ public:
         // Or here use a_callback_to_other_ui_of_your_choice();
         // You can also choose to plot everything down here in one go.
     }
-    
-    
 
-   
 
-  
+
+
+
+
 
     std::mutex flagMutex;
-  
+
 private:
 
     /**
@@ -265,17 +263,17 @@ private:
     std::array<float, 6> filter_lims = { -0.050, 0.050, -0.050, 0.050, 0.000, 0.150 }; // picoflexx depth z-axis (Min ? m)
     float filt_leaf_size = 0.005;
 
-  /*  pcl::visualization::PCLVisualizer::Ptr initViewer()
-    {
-        pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
-        viewer->createViewPort(0.0, 0.0, 1.0, 1.0, vp);
-        viewer->setCameraPosition(0.0, 0.0, -0.5, 0.0, -1.0, 0.0, vp);
-        viewer->setSize(800, 600);
-        viewer->setBackgroundColor(bckgr_gray_level, bckgr_gray_level, bckgr_gray_level, vp);
-        viewer->addCoordinateSystem(0.25); // Global reference frame (on-camera)
+    /*  pcl::visualization::PCLVisualizer::Ptr initViewer()
+      {
+          pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
+          viewer->createViewPort(0.0, 0.0, 1.0, 1.0, vp);
+          viewer->setCameraPosition(0.0, 0.0, -0.5, 0.0, -1.0, 0.0, vp);
+          viewer->setSize(800, 600);
+          viewer->setBackgroundColor(bckgr_gray_level, bckgr_gray_level, bckgr_gray_level, vp);
+          viewer->addCoordinateSystem(0.25); // Global reference frame (on-camera)
 
-        return viewer;
-    }*/
+          return viewer;
+      }*/
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
     {
@@ -386,6 +384,9 @@ void viewerPsycho(pcl::visualization::PCLVisualizer& viewer)
     user_data++;
 }
 
+void correctCylShape(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
+std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction);
+
 int main(int argc, char* argv[])
 {
     // Windows requires that the application allocate these, not the DLL.
@@ -412,22 +413,16 @@ int main(int argc, char* argv[])
     // the camera device is now available and CameraManager can be deallocated here
   
     // IMPORTANT: call the initialize method before working with the camera device
-    auto status = cameraDevice->initialize();
-   
-   
+    auto status = cameraDevice->initialize();   
 
     cameraDevice->registerDataListener(&listener);
     cameraDevice->startCapture();
     // register a data listener
 
-    int currentKey = 0;
-    while (currentKey != 27)
-    {
-        // wait until a key is pressed
-        currentKey = cin.get();
-        
 
-        
+    while (!_kbhit())
+    {
+         
         
     }
     cameraDevice->stopCapture();
