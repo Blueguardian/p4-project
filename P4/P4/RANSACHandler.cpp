@@ -9,7 +9,8 @@
 pcl::ModelCoefficients::Ptr coefficients_sphere(new pcl::ModelCoefficients);
 pcl::ModelCoefficients::Ptr coefficients_box(new pcl::ModelCoefficients);
 pcl::ModelCoefficients::Ptr coefficients_cylinder(new pcl::ModelCoefficients);
-pcl::PointIndices :: Ptr inliers_cylinder;
+pcl::PointIndices :: Ptr inliers_cylinder(new pcl::PointIndices);
+pcl::PointCloud<PointT>::Ptr cylPoints(new pcl::PointCloud<PointT>);
 
 RANSACHandler::RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud) {
     Ptcloud = cloud;
@@ -131,33 +132,6 @@ double* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients
     return boxDim;
 }
 
-void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud)
-{
-    pcl::PointXYZ p_axis(coefficients.values[0], coefficients.values[1], coefficients.values[2]);
-    pcl::PointXYZ axis(coefficients.values[3], coefficients.values[4], coefficients.values[5]);
-    std::array<float, 2> arr(getPointCloudExtremes(cloud, p_axis, axis));
-
-    pcl::PointXYZ p_low;
-    p_low.x = p_axis.x + arr[0] * axis.x / normPointT(axis);
-    p_low.y = p_axis.y + arr[0] * axis.y / normPointT(axis);
-    p_low.z = p_axis.z + arr[0] * axis.z / normPointT(axis);
-    pcl::PointXYZ n_direction;
-    n_direction.x = (-arr[0] + arr[1]) * axis.x / normPointT(axis);
-    n_direction.y = (-arr[0] + arr[1]) * axis.y / normPointT(axis);
-    n_direction.z = (-arr[0] + arr[1]) * axis.z / normPointT(axis);
-
-    //height
-    long cylinder_height = pow((n_direction.x * n_direction.x + n_direction.y * n_direction.y + n_direction.z * n_direction.z), 0.5);
-
-    cyl.values.push_back(p_low.x);                          //point_on_axis.x : the X coordinate of a point located on the cylinder axis
-    cyl.values.push_back(p_low.y);                          //point_on_axis.y : the Y coordinate of a point located on the cylinder axis
-    cyl.values.push_back(p_low.z);                          //point_on_axis.z : the Z coordinate of a point located on the cylinder axis
-    cyl.values.push_back(n_direction.x);                    //axis_direction.x : the X coordinate of the cylinder's axis direction
-    cyl.values.push_back(n_direction.y);                    //axis_direction.y : the Y coordinate of the cylinder's axis direction
-    cyl.values.push_back(n_direction.z);                    //axis_direction.z : the Z coordinate of the cylinder's axis direction
-    cyl.values.push_back(coefficients.values[6]);           //radius : the cylinder's radius in meter
-    cyl.values.push_back(cylinder_height);
-}
 
 std::array<float, 2> RANSACHandler::getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction)
 {
@@ -187,17 +161,15 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
     return std::sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
 }
 
-float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud){
+float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
     pcl::NormalEstimation<PointT, pcl::Normal> ne;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in;
-    cloud_in = cloud;
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
     pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_cylinder;
     pcl::ExtractIndices<PointT> extract_cylinder;
     pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
 
     ne.setSearchMethod(tree);
-    ne.setInputCloud(cloud_in);
+    ne.setInputCloud(cloud);
     ne.setKSearch(50);
     ne.compute(*cloud_normals);
 
@@ -208,22 +180,51 @@ float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud){
     seg_cylinder.setMaxIterations(10000);
     seg_cylinder.setDistanceThreshold(0.0012);
     seg_cylinder.setRadiusLimits(0.005, 0.150);
-    seg_cylinder.setInputCloud(cloud_in);
+    seg_cylinder.setInputCloud(cloud);
     seg_cylinder.setInputNormals(cloud_normals);
 
     //Obtain the inliers of cylinder
     seg_cylinder.segment(*inliers_cylinder, *coefficients_cylinder);
 
     // Save the cylinder inliers                                       
-    extract_cylinder.setInputCloud(cloud_in);
     extract_cylinder.setIndices(inliers_cylinder);
+    extract_cylinder.setInputCloud(cloud);
     extract_cylinder.setNegative(false);
-    extract_cylinder.filter(*cloud_in);
+    extract_cylinder.filter(*cylPoints);
 
     //cloudpoint ratio
-    float cylinderRatio = (double)cloud_in->points.size() / (double)cloud_in->points.size() * 100;
+    float cylinderRatio = (double)cylPoints->points.size() / (double)cloud->points.size() * 100;
     return cylinderRatio;
 }
+
+void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud)
+{
+    pcl::PointXYZ p_axis(coefficients.values[0], coefficients.values[1], coefficients.values[2]);
+    pcl::PointXYZ axis(coefficients.values[3], coefficients.values[4], coefficients.values[5]);
+    std::array<float, 2> arr(getPointCloudExtremes(cloud, p_axis, axis));
+
+    pcl::PointXYZ p_low;
+    p_low.x = p_axis.x + arr[0] * axis.x / normPointT(axis);
+    p_low.y = p_axis.y + arr[0] * axis.y / normPointT(axis);
+    p_low.z = p_axis.z + arr[0] * axis.z / normPointT(axis);
+    pcl::PointXYZ n_direction;
+    n_direction.x = (-arr[0] + arr[1]) * axis.x / normPointT(axis);
+    n_direction.y = (-arr[0] + arr[1]) * axis.y / normPointT(axis);
+    n_direction.z = (-arr[0] + arr[1]) * axis.z / normPointT(axis);
+
+    //height
+    long cylinder_height = pow((n_direction.x * n_direction.x + n_direction.y * n_direction.y + n_direction.z * n_direction.z), 0.5);
+
+    cyl.values.push_back(p_low.x);                          //point_on_axis.x : the X coordinate of a point located on the cylinder axis
+    cyl.values.push_back(p_low.y);                          //point_on_axis.y : the Y coordinate of a point located on the cylinder axis
+    cyl.values.push_back(p_low.z);                          //point_on_axis.z : the Z coordinate of a point located on the cylinder axis
+    cyl.values.push_back(n_direction.x);                    //axis_direction.x : the X coordinate of the cylinder's axis direction
+    cyl.values.push_back(n_direction.y);                    //axis_direction.y : the Y coordinate of the cylinder's axis direction
+    cyl.values.push_back(n_direction.z);                    //axis_direction.z : the Z coordinate of the cylinder's axis direction
+    cyl.values.push_back(coefficients.values[6]);           //radius : the cylinder's radius in meter
+    cyl.values.push_back(cylinder_height);
+}
+
 
 float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr& coefficients_planes1, pcl::ModelCoefficients::Ptr& coefficients_planes2, pcl::ModelCoefficients::Ptr& coefficients_planes3) {
 
