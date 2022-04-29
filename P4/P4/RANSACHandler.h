@@ -34,7 +34,6 @@
 #include <pcl/io/pcd_io.h>
 
 
-
 #include <chrono>
 #include <thread>
 #include <sample_utils/PlatformResources.hpp>

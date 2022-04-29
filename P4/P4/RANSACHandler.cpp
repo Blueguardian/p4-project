@@ -225,8 +225,6 @@ float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud){
     return cylinderRatio;
 }
 
-
-
 float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr& coefficients_planes1, pcl::ModelCoefficients::Ptr& coefficients_planes2, pcl::ModelCoefficients::Ptr& coefficients_planes3) {
 
 

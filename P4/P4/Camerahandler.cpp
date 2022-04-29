@@ -27,6 +27,9 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
+
+#include <pcl/console/print.h>
+#include <cstddef>
 #include <pcl/impl/pcl_base.hpp>
 
 #include <chrono>
@@ -48,7 +51,6 @@ Camerahandler::Camerahandler()
         float txt_gray_lvl = 1.0 - bckgr_gray_level;
         int vp = 0; // Default viewport
         bool isViewer = false;
-
     }
 
     /**
@@ -64,7 +66,6 @@ Camerahandler::Camerahandler()
 
     void Camerahandler :: onNewData(const royale::DepthData* data)  {
         
-        
         // Pointcloud objects
         pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
         cloud = points2pcl(data, 242); //127(50),204(80),229(90),242(95),252(99) //this->depth_confidence
@@ -77,7 +78,7 @@ Camerahandler::Camerahandler()
         }
 
         else if (cloud->size() > 0) {
-            filt(cloud);
+            XYZfilter(cloud);
             buffer.push(cloud);
             indx++;
         }
@@ -126,29 +127,31 @@ Camerahandler::Camerahandler()
         float filt_leaf_size = 0.005;
         std::array<float, 6> filter_lims = { -0.50, 0.50, -0.50, 0.50, 0.000, 0.50 }; // x-min, x-max, y-min, y-max, z-min, z-max
         pcl::PassThrough<PointT> pass(true);
+        pcl::PointCloud<PointT>::Ptr cloudFiltered(new pcl::PointCloud<PointT>);
 
         pass.setInputCloud(ptcloud);
         pass.setFilterFieldName("x");
         pass.setFilterLimits(filter_lims[0], filter_lims[1]);
-        pass.filter(*ptcloud);
+        pass.filter(*cloudFiltered);
 
-        pass.setInputCloud(ptcloud);
+        pass.setInputCloud(cloudFiltered);
         pass.setFilterFieldName("y");
         pass.setFilterLimits(filter_lims[2], filter_lims[3]);
-        pass.filter(*ptcloud);
+        pass.filter(*cloudFiltered);
 
-        pass.setInputCloud(ptcloud);
+        pass.setInputCloud(cloudFiltered);
         pass.setFilterFieldName("z");
         pass.setFilterLimits(filter_lims[4], filter_lims[5]);
-        pass.filter(*ptcloud);
+        pass.filter(*cloudFiltered);
 
         pcl::VoxelGrid<pcl::PointXYZ> dsfilt;
-        dsfilt.setInputCloud(ptcloud);
+        dsfilt.setInputCloud(cloudFiltered);
         dsfilt.setLeafSize(filt_leaf_size, filt_leaf_size, filt_leaf_size);
-        dsfilt.filter(*ptcloud);
-        std::cerr << "PointCloud after downsampling: " << ptcloud->width * ptcloud->height << " data points." << std::endl;
+        dsfilt.filter(*cloudFiltered);
+        std::cerr << "PointCloud after downsampling: " << cloudFiltered->width * cloudFiltered->height << " data points." << std::endl;
     }
 
+    /*
     void filt(pcl::PointCloud<PointT>::Ptr& output) 
     {
         if (!initCompute())
@@ -173,6 +176,7 @@ Camerahandler::Camerahandler()
 
         deinitCompute();
     }
+    */
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
     {

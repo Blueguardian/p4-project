@@ -119,7 +119,7 @@
       <AdditionalIncludeDirectories>C:\Program Files\PCL 1.12.1\3rdParty\FLANN\include;C:\Program Files\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;C:\Program Files\PCL 1.12.1\3rdParty\Eigen\eigen3;C:\Program Files\PCL 1.12.1\3rdParty\VTK\include\vtk-9.1;C:\Program Files\PCL 1.12.1\include\pcl-1.12;C:\Program Files\royale\4.18.0.261\include;C:\Program Files\royale\4.18.0.261\samples\inc;C:\Users\Johsb\Desktop\Skoleting\Robotteknologi 09-2020 -\4.Semester\Projekt\p4-project\P4\P4;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
