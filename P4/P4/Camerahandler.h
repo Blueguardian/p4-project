@@ -69,16 +69,8 @@ public:
     void onNewData(const royale::DepthData* data) override;
 
 private:
-    /**
-    * The StreamIds for all streams that are expected to be received.  For this example, it's a
-    * constant set, so doesn't need protecting with a mutex.
-    */
+    
     const royale::Vector<royale::StreamId> m_streamIds;
-
-    /**
-    * Updated in each call to onNewData, for each stream it contains the most recently received
-    * frame.  Should only be accessed with m_lockForReceivedData held.
-    */
 
     struct MyFrameData
     {

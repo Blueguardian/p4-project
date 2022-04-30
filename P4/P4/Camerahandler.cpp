@@ -89,17 +89,20 @@ Camerahandler::Camerahandler()
 
         if (!isViewer) {
             viewerOneOff(viewer);
-            viewerUpdate(viewer, cloudFiltered4);
+            viewer.showCloud(cloud, "OG");
+            viewer.showCloud(cloudFiltered4, "Filtered");
+            
             isViewer = true;
         }
         else {
-            viewerUpdate(viewer, cloudFiltered4);
+            viewer.showCloud(cloud, "OG");
+            viewer.showCloud(cloudFiltered4, "Filtered");
+            
 
         }
         //float cylinder_ratio = Ransacer.check_cyl(cloudFiltered4);
         //std::cout << cylinder_ratio << endl;
-        //Ransacer.shape_cyl();
-        //bool HowDENSEmotherfucker = cloud->is_dense;
+        //Ransacer.shape_cyl();,
 
         return;
     }
