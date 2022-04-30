@@ -15,7 +15,6 @@
 #include <pcl/point_types.h>
 #include <pcl/common/projection_matrix.h>
 #include <pcl/ModelCoefficients.h>                                              //Planar segmentation,Extract Indices,Cylinder model segmentation
-#include <pcl/io/ply_io.h>                                                      //?? pcl/io/io.h (http://pointclouds.org/documentation/tutorials/planar_segmentation.php#planar-segmentation)
 #include <pcl/point_types.h>                                                    //Planar segmentation,Extract Indices ,Cylinder model segmentation
 #include <pcl/filters/voxel_grid.h>                                             //Extract Indices                        http://pointclouds.org/documentation/tutorials/extract_indices.php#id1
 #include <pcl/filters/extract_indices.h>                                        //Extract Indices  Cylinder model segmentation
@@ -30,8 +29,6 @@
 #include <pcl/sample_consensus/sac_model_plane.h>
 #include <pcl/sample_consensus/sac_model_sphere.h>
 #include <pcl/visualization/cloud_viewer.h>
-#include <pcl/io/io.h>
-#include <pcl/io/pcd_io.h>
 
 
 #include <chrono>
@@ -72,10 +69,6 @@ public:
     float check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     float check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr& coefficients_planes1, pcl::ModelCoefficients::Ptr& coefficients_planes3, pcl::ModelCoefficients::Ptr& coefficients_planes2);
     float check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients_sph);
-
-private:
-    
-
 };
 
 

@@ -2,55 +2,20 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <royale.hpp>
-#include <iostream>
-#include <mutex>
-
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl/common/projection_matrix.h>
-#include <pcl/ModelCoefficients.h>                                              //Planar segmentation,Extract Indices,Cylinder model segmentation
-#include <pcl/io/ply_io.h>                                                      //?? pcl/io/io.h (http://pointclouds.org/documentation/tutorials/planar_segmentation.php#planar-segmentation)
-#include <pcl/point_types.h>                                                    //Planar segmentation,Extract Indices ,Cylinder model segmentation
-#include <pcl/filters/voxel_grid.h>                                             //Extract Indices                        http://pointclouds.org/documentation/tutorials/extract_indices.php#id1
-#include <pcl/filters/extract_indices.h>                                        //Extract Indices  Cylinder model segmentation
-#include <pcl/filters/passthrough.h>                                            //Cylinder model segmentation
-#include <pcl/features/normal_3d.h>                                             //Cylinder model segmentation
-#include <pcl/sample_consensus/method_types.h>                                  //Planar segmentation,Extract Indices ,Cylinder model segmentation
-#include <pcl/sample_consensus/model_types.h>                                   //Planar segmentation  //Extract Indices  Cylinder model segmentation
-#include <pcl/segmentation/sac_segmentation.h>                                  //Planar segmentation  //Extract Indices      Cylinder model segmentation + others?
-#include <pcl/visualization/pcl_visualizer.h>                                   //http://pointclouds.org/documentation/tutorials/pcl_visualizer.php#pcl-visualizer
-#include <pcl/console/time.h>
-#include <pcl/sample_consensus/ransac.h>
-#include <pcl/sample_consensus/sac_model_plane.h>
-#include <pcl/sample_consensus/sac_model_sphere.h>
-#include <pcl/visualization/cloud_viewer.h>
-#include <pcl/io/io.h>
-#include <pcl/io/pcd_io.h>
-
-#include <pcl/console/print.h>
-#include <cstddef>
-#include <pcl/impl/pcl_base.hpp>
-
-#include <chrono>
-#include <thread>
-#include <sample_utils/PlatformResources.hpp>
-#include <vector>
-#include "Camerahandler.h"
-
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
 
 pcl::visualization::CloudViewer viewer("CloudViewer");
+
     
 // Pointcloud objects
 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
-pcl::PointCloud<PointT>::Ptr cloudFiltered(new pcl::PointCloud<PointT>);
-pcl::PointCloud<PointT>::Ptr cloudFiltered2(new pcl::PointCloud<PointT>);
-pcl::PointCloud<PointT>::Ptr cloudFiltered3(new pcl::PointCloud<PointT>);
-pcl::PointCloud<PointT>::Ptr cloudFiltered4(new pcl::PointCloud<PointT>);
-pcl::PointCloud<PointT>::Ptr cloudFiltered5(new pcl::PointCloud<PointT>);
+pcl::PointCloud<PointT>::Ptr cloudFiltered(new pcl::PointCloud<PointT>); // We need to make a new cloud for each filter because of
+pcl::PointCloud<PointT>::Ptr cloudFiltered2(new pcl::PointCloud<PointT>);// boost shared Ptr will go out of scope and free the pointer
+pcl::PointCloud<PointT>::Ptr cloudFiltered3(new pcl::PointCloud<PointT>);// if we do not, we will invalidate the heap.
+pcl::PointCloud<PointT>::Ptr cloudFiltered4(new pcl::PointCloud<PointT>);  
+pcl::PointCloud<PointT>::Ptr cloudFiltered5(new pcl::PointCloud<PointT>); 
 pcl::PointIndices::Ptr indices(new pcl::PointIndices);
 
 
@@ -76,8 +41,7 @@ Camerahandler::Camerahandler()
 
     void Camerahandler :: onNewData(const royale::DepthData* data)  {
         
-        
-        cloud = points2pcl(data, 242); //127(50),204(80),229(90),242(95),252(99) //this->depth_confidence
+        cloud = points2pcl(data, 0); 
         RANSACHandler Ransacer(cloud);
         std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
 
@@ -87,9 +51,10 @@ Camerahandler::Camerahandler()
         }
 
         else if (cloud->size() > 0) {
+            
             //XYZfilter(cloud);
             float filt_leaf_size = 0.005;
-            std::array<float, 6> filter_lims = { -1, 1, -1, 1, -1, 1 }; // x-min, x-max, y-min, y-max, z-min, z-max
+            std::array<float, 6> filter_lims = { -0.15, 0.15, -0.15, 0.15, 0, 3 }; // x-min, x-max, y-min, y-max, z-min, z-max
             pcl::PassThrough<PointT> pass(true);
            
             pass.setInputCloud(cloud);
@@ -129,11 +94,12 @@ Camerahandler::Camerahandler()
         }
         else {
             viewerUpdate(viewer, cloudFiltered4);
+
         }
-        float cylinder_ratio = Ransacer.check_cyl(cloudFiltered4);
-        std::cout << cylinder_ratio << endl;
+        //float cylinder_ratio = Ransacer.check_cyl(cloudFiltered4);
+        //std::cout << cylinder_ratio << endl;
         //Ransacer.shape_cyl();
-        bool HowDENSEmotherfucker = cloud->is_dense;
+        //bool HowDENSEmotherfucker = cloud->is_dense;
 
         return;
     }
@@ -157,33 +123,6 @@ Camerahandler::Camerahandler()
     viewer.showCloud(cloud, "cloud");
     }
 
-    /*
-    void filt(pcl::PointCloud<PointT>::Ptr& output) 
-    {
-        if (!initCompute())
-            return;
-
-        if (input_.get() == &output)  // cloud_in = cloud_out
-        {
-            PointCloud output_temp;
-            applyFilter(output_temp);
-            output_temp.header = input_->header;
-            output_temp.sensor_origin_ = input_->sensor_origin_;
-            output_temp.sensor_orientation_ = input_->sensor_orientation_;
-            pcl::copyPointCloud(output_temp, output);
-        }
-        else
-        {
-            output.header = input_->header;
-            output.sensor_origin_ = input_->sensor_origin_;
-            output.sensor_orientation_ = input_->sensor_orientation_;
-            applyFilter(output);
-        }
-
-        deinitCompute();
-    }
-    */
-
     pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
     {
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -197,4 +136,29 @@ Camerahandler::Camerahandler()
         return cloud;
     }
 
+    /*
+    void XYZfilter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
+    float filt_leaf_size = 0.005;
+    std::array<float, 6> filter_lims = { -0.15, 0.15, -0.15, 0.15, 0, 3 }; // x-min, x-max, y-min, y-max, z-min, z-max
+    pcl::PassThrough<PointT> pass(true);
 
+    pass.setInputCloud(cloud);
+    pass.setFilterFieldName("x");
+    pass.setFilterLimits(filter_lims[0], filter_lims[1]);
+    pass.filter(*cloud);
+
+    pass.setInputCloud(cloud);
+    pass.setFilterFieldName("y");
+    pass.setFilterLimits(filter_lims[2], filter_lims[3]);
+    pass.filter(*cloud);
+
+    pass.setInputCloud(cloud);
+    pass.setFilterFieldName("z");
+    pass.setFilterLimits(filter_lims[4], filter_lims[5]);
+    pass.filter(*cloud);
+
+    pcl::VoxelGrid<pcl::PointXYZ> dsfilt;
+    dsfilt.setInputCloud(cloud);
+    dsfilt.setLeafSize(filt_leaf_size, filt_leaf_size, filt_leaf_size);
+    dsfilt.filter(*cloud);
+    }*/

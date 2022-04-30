@@ -30,9 +30,10 @@
 #include <pcl/sample_consensus/ransac.h>
 #include <pcl/sample_consensus/sac_model_plane.h>
 #include <pcl/sample_consensus/sac_model_sphere.h>
+
 #include <pcl/visualization/cloud_viewer.h>
-#include <pcl/io/io.h>
-#include <pcl/io/pcd_io.h>
+#include <pcl/visualization/pcl_visualizer.h>                                   //http://pointclouds.org/documentation/tutorials/pcl_visualizer.php#pcl-visualizer
+
 
 #include <chrono>
 #include <thread>
@@ -92,9 +93,6 @@ private:
     int vp; // Default viewport
     float bckgr_gray_level;  // Black:=0.02
     float txt_gray_lvl;
-    //std::array<float, 6> filter_lims; // picoflexx depth z-axis (Min ? m)
-    //float filt_leaf_size;
-    //const royale::Vector<royale::StreamId> m_streamIds;
 
     //Private Method prototypes
     pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence);
