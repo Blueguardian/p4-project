@@ -47,7 +47,7 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
     return std::sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
 }
 
-float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
+tuple <float,float> RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     pcl::NormalEstimation<PointT, pcl::Normal> ne;
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
     pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_cylinder;
@@ -63,7 +63,7 @@ float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
     seg_cylinder.setMethodType(pcl::SAC_RANSAC);
     seg_cylinder.setModelType(pcl::SACMODEL_CYLINDER);
     seg_cylinder.setNormalDistanceWeight(0.01);
-    seg_cylinder.setMaxIterations(10000);
+    seg_cylinder.setMaxIterations(100);
     seg_cylinder.setDistanceThreshold(0.0012);
     seg_cylinder.setRadiusLimits(0.005, 0.150);
     seg_cylinder.setInputCloud(cloud);
@@ -80,7 +80,8 @@ float RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
 
     //cloudpoint ratio
     float cylinderRatio = (double)cylPoints->points.size() / (double)cloud->points.size() * 100;
-    return cylinderRatio;
+    return { cylinderRatio,coefficients_cylinder->values[6] };
+    //return {cylinderRatio, coefficients_cylinder};
 }
 
 void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud)

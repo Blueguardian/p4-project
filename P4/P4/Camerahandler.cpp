@@ -55,7 +55,7 @@ Camerahandler::Camerahandler()
         else if (cloud->size() > 0) {
             
             //XYZfilter(cloud);
-            float filt_leaf_size = 0.005;
+            float filt_leaf_size = 0.01;
             std::array<float, 6> filter_lims = { -0.15, 0.15, -0.15, 0.15, 0, 3 }; // x-min, x-max, y-min, y-max, z-min, z-max
             pcl::PassThrough<PointT> pass(true);
            
@@ -79,7 +79,6 @@ Camerahandler::Camerahandler()
             dsfilt.setLeafSize(filt_leaf_size, filt_leaf_size, filt_leaf_size);
             dsfilt.filter(*cloudDownsampled);
 
-            std::cerr << "PointCloud after downsampling: " << cloudDownsampled->width * cloudDownsampled->height << " data points." << std::endl;
             buffer.push(cloudDownsampled);
             indx++;
         }
@@ -155,13 +154,14 @@ Camerahandler::Camerahandler()
         for (const auto& idx : ClosestIndex->indices) {
             cloud_cluster->push_back((*cloudPlaneRemoved)[idx]);
         }
+        std::cerr << "PointCloud after downsampling: " << cloudPlaneRemoved->width * cloudPlaneRemoved->height << " data points." << std::endl;
 
         if (!isViewer) {
-        viewerOneOff(viewer);
-        //viewer.showCloud(cloud_cluster, "OG");
-        viewer.showCloud(cloud_cluster, "cluster");
+            viewerOneOff(viewer);
+            //viewer.showCloud(cloud_cluster, "OG");
+            viewer.showCloud(cloud_cluster, "cluster");
            
-        isViewer = true;
+            isViewer = true;
         }
         else {
             //viewer.showCloud(cloud_cluster, "OG");
@@ -169,9 +169,9 @@ Camerahandler::Camerahandler()
             
 
         }
-        //RANSACHandler Ransacer(cloud);
-        //float cylinder_ratio = Ransacer.check_cyl(cloudFiltered4);
-        //std::cout << cylinder_ratio << endl;
+        RANSACHandler Ransacer(cloud);
+        auto [cylinder_ratio, Radius] = Ransacer.check_cyl(cloud_cluster);
+        std::cout<< "Cylinder Ratio: " << cylinder_ratio << " Radius: " << Radius << endl;
         //Ransacer.shape_cyl();,
 
 

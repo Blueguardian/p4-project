@@ -7,6 +7,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <royale.hpp>
+#include <tuple>
 #include <iostream>
 #include <mutex>
 
@@ -66,7 +67,8 @@ public:
     float dotProduct(pcl::PointXYZ a, pcl::PointXYZ b);
     float normPointT(pcl::PointXYZ c);
 
-    float check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    tuple <float,float> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    //tuple <float, pcl::ModelCoefficients::Ptr> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     float check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
     float check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients_sph);
 };
