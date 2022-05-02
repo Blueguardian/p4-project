@@ -45,7 +45,7 @@ Camerahandler::Camerahandler()
     void Camerahandler :: onNewData(const royale::DepthData* data)  {
         
         cloud = points2pcl(data, 100); 
-        std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
+        //std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
 
         if (cloud->size() == 0)
         {
@@ -118,7 +118,7 @@ Camerahandler::Camerahandler()
         std::vector<pcl::PointIndices> cluster_indices;
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
         // specify euclidean cluster parameters
-        ec.setClusterTolerance(0.02); // 2cm
+        ec.setClusterTolerance(0.01); // 2cm
         ec.setMinClusterSize(100);
         ec.setMaxClusterSize(25000);
         ec.setSearchMethod(tree);
@@ -154,24 +154,21 @@ Camerahandler::Camerahandler()
         for (const auto& idx : ClosestIndex->indices) {
             cloud_cluster->push_back((*cloudPlaneRemoved)[idx]);
         }
-        std::cerr << "PointCloud after downsampling: " << cloudPlaneRemoved->width * cloudPlaneRemoved->height << " data points." << std::endl;
 
         if (!isViewer) {
             viewerOneOff(viewer);
             //viewer.showCloud(cloud_cluster, "OG");
-            viewer.showCloud(cloud_cluster, "cluster");
-           
+            viewer.showCloud(cloud_cluster, "cluster");         
             isViewer = true;
         }
         else {
             //viewer.showCloud(cloud_cluster, "OG");
             viewer.showCloud(cloud_cluster, "cluster");
-            
-
         }
         RANSACHandler Ransacer(cloud);
         auto [cylinder_ratio, Radius] = Ransacer.check_cyl(cloud_cluster);
-        std::cout<< "Cylinder Ratio: " << cylinder_ratio << " Radius: " << Radius << endl;
+        std::cout<< "Cylinder Ratio: " << cylinder_ratio << " Radius: " << Radius*100 << " cm" << endl;
+        float Boxratio = Ransacer.check_box(cloud_cluster);
         //Ransacer.shape_cyl();,
 
 
