@@ -67,7 +67,7 @@ public:
     float normPointT(pcl::PointXYZ c);
 
     float check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    float check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr& coefficients_planes1, pcl::ModelCoefficients::Ptr& coefficients_planes3, pcl::ModelCoefficients::Ptr& coefficients_planes2);
+    float check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
     float check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients_sph);
 };
 

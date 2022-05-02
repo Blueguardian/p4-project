@@ -17,120 +17,6 @@ RANSACHandler::RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud) {
     
 }
 
-double* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients& p1, const pcl::ModelCoefficients& p2, const pcl::ModelCoefficients& p3) {
-    //for loop with runs the amount of planes
-    double boxDim[2];                   //boxDim[0] = width; BoxDim[1] = hight
-    double planes[3][4];
-
-    if (nPlanes > 2) {                  //if the amount of planes is more then 2
-        //first plane
-        planes[0][0] = p1.values[0];
-        planes[0][1] = p1.values[1];
-        planes[0][2] = p1.values[2];
-        planes[0][3] = p1.values[3];
-        //second plane
-        planes[1][0] = p2.values[0];
-        planes[1][1] = p2.values[1];
-        planes[1][2] = p2.values[2];
-        planes[1][3] = p2.values[3];
-        //third plane
-        planes[2][0] = p3.values[0];
-        planes[2][1] = p3.values[1];
-        planes[2][2] = p3.values[2];
-        planes[2][3] = p3.values[3];
-    }
-    else {                              //if there are 2 or less planes do this.
-        //first plane
-        planes[0][0] = p1.values[0];
-        planes[0][1] = p1.values[1];
-        planes[0][2] = p1.values[2];
-        planes[0][3] = p1.values[3];
-        //second plane
-        planes[1][0] = p2.values[0];
-        planes[1][1] = p2.values[1];
-        planes[1][2] = p2.values[2];
-        planes[1][3] = p2.values[3];
-    }
-
-
-    for (int i = 0, j = nPlanes - 1; i < j; ++i) {                    //3 planes = 2 runs
-
-        //define normal vectors
-        double p1_nx, p1_ny, p1_nz, p2_nx, p2_ny, p2_nz;
-
-        //define length and angle variables
-        double c_length, a_angle, a_length;
-
-        //find normal vectors positions
-        p1_nx = planes[i][0] / (sqrt(pow(planes[i][0], 2) + pow(planes[i][1], 2) + pow(planes[i][2], 2)));
-        p1_ny = planes[i][1] / (sqrt(pow(planes[i][0], 2) + pow(planes[i][1], 2) + pow(planes[i][2], 2)));
-        p1_nz = planes[i][2] / (sqrt(pow(planes[i][0], 2) + pow(planes[i][1], 2) + pow(planes[i][2], 2)));
-
-        p2_nx = planes[i][0] / (sqrt(pow(planes[i + 1][0], 2) + pow(planes[i + 1][1], 2) + pow(planes[i + 1][2], 2)));
-        p2_ny = planes[i][1] / (sqrt(pow(planes[i + 1][0], 2) + pow(planes[i + 1][1], 2) + pow(planes[i + 1][2], 2)));
-        p2_nz = planes[i][2] / (sqrt(pow(planes[i + 1][0], 2) + pow(planes[i + 1][1], 2) + pow(planes[i + 1][2], 2)));
-
-        //cout << myShape << "-" << i << "; 1nx" << p1_nx << "; 1ny: " << p1_ny << "; 1nz: " << p1_nz << "; 2nx: " << p2_nx << "; 2ny: " << p2_ny << "; 2nz: " << p2_nz << std::endl;
-
-        //C_angle = invCos((n_A ° n_B )  /  (n_A| * | n_B| ))
-        //note ° = dotproduct [ a.x* b.x + a.y * b.y + a.z * b.z ]
-
-        long double plane_dotProduct = (p1_nx * p2_nx) + (p1_ny * p2_ny) + (p1_nz * p2_nz);
-        long double p1_length = sqrt((pow(p1_nx, 2) + pow(p1_ny, 2) + pow(p1_nz, 2)));
-        long double p2_length = sqrt((pow(p2_nx, 2) + pow(p2_ny, 2) + pow(p2_nz, 2)));
-        long double c_angle = asin(plane_dotProduct / ((p1_length * p2_length)));
-        
-        //cout << myShape << "-" << i << "; dotProduct: " << plane_dotProduct << " ; plane_1 lenght: " << p1_length << " ; plane_2 length: " << p2_length << " ; angle C: " << c_angle << std::endl;
-
-
-        //Plane_centerPoint[plane_counter];
-        float p1_cx = plane_centerPoint_x[i];
-        float p1_cy = plane_centerPoint_y[i];
-        float p1_cz = plane_centerPoint_z[i];
-
-        float p2_cx = plane_centerPoint_x[i + 1];
-        float p2_cy = plane_centerPoint_y[i + 1];
-        float p2_cz = plane_centerPoint_z[i + 1];
-
-        c_length = sqrt((pow(p2_cx, 2) - pow(p1_cx, 2)) +
-            (pow(p2_cy, 2) - pow(p1_cy, 2)) +
-            (pow(p2_cz, 2) - pow(p1_cz, 2)));
-
-
-        //find Another angle (assuming A=B)
-        a_angle = (180 - c_angle) / 2;
-        
-        //cout << myShape << "-" << i << "; a_angle: " << a_angle << std::endl;
-
-        //find lengh of a
-        a_length = (c_length * sin(a_angle)) / sin(c_angle);
-
-
-        //cout << myShape << "-" << i << "; a_length: " << a_length << std::endl;
-
-        //to mm
-        boxDim[i] = a_length * 1000 * 2;
-
-
-    }
-    //NaN error
-    if (boxDim[0] != boxDim[0]) {
-        box_radius = 0;
-    }
-    else {
-        box_radius = boxDim[0];
-    }
-    //NaN error
-    if (boxDim[1] != boxDim[1]) {
-        box_hight = 0;
-    }
-    else {
-        box_hight = boxDim[1];
-    }
-
-
-    return boxDim;
-}
 
 
 std::array<float, 2> RANSACHandler::getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction)
@@ -225,9 +111,127 @@ void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoeff
     cyl.values.push_back(cylinder_height);
 }
 
+double* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients& p1, const pcl::ModelCoefficients& p2, const pcl::ModelCoefficients& p3) {
+    //for loop with runs the amount of planes
+    double boxDim[2];                   //boxDim[0] = width; BoxDim[1] = hight
+    double planes[3][4];
 
-float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr& coefficients_planes1, pcl::ModelCoefficients::Ptr& coefficients_planes2, pcl::ModelCoefficients::Ptr& coefficients_planes3) {
+    if (nPlanes > 2) {                  //if the amount of planes is more then 2
+        //first plane
+        planes[0][0] = p1.values[0];
+        planes[0][1] = p1.values[1];
+        planes[0][2] = p1.values[2];
+        planes[0][3] = p1.values[3];
+        //second plane
+        planes[1][0] = p2.values[0];
+        planes[1][1] = p2.values[1];
+        planes[1][2] = p2.values[2];
+        planes[1][3] = p2.values[3];
+        //third plane
+        planes[2][0] = p3.values[0];
+        planes[2][1] = p3.values[1];
+        planes[2][2] = p3.values[2];
+        planes[2][3] = p3.values[3];
+    }
+    else {                              //if there are 2 or less planes do this.
+        //first plane
+        planes[0][0] = p1.values[0];
+        planes[0][1] = p1.values[1];
+        planes[0][2] = p1.values[2];
+        planes[0][3] = p1.values[3];
+        //second plane
+        planes[1][0] = p2.values[0];
+        planes[1][1] = p2.values[1];
+        planes[1][2] = p2.values[2];
+        planes[1][3] = p2.values[3];
+    }
 
+
+    for (int i = 0, j = nPlanes - 1; i < j; ++i) {                    //3 planes = 2 runs
+
+        //define normal vectors
+        double p1_nx, p1_ny, p1_nz, p2_nx, p2_ny, p2_nz;
+
+        //define length and angle variables
+        double c_length, a_angle, a_length;
+
+        //find normal vectors positions
+        p1_nx = planes[i][0] / (sqrt(pow(planes[i][0], 2) + pow(planes[i][1], 2) + pow(planes[i][2], 2)));
+        p1_ny = planes[i][1] / (sqrt(pow(planes[i][0], 2) + pow(planes[i][1], 2) + pow(planes[i][2], 2)));
+        p1_nz = planes[i][2] / (sqrt(pow(planes[i][0], 2) + pow(planes[i][1], 2) + pow(planes[i][2], 2)));
+
+        p2_nx = planes[i][0] / (sqrt(pow(planes[i + 1][0], 2) + pow(planes[i + 1][1], 2) + pow(planes[i + 1][2], 2)));
+        p2_ny = planes[i][1] / (sqrt(pow(planes[i + 1][0], 2) + pow(planes[i + 1][1], 2) + pow(planes[i + 1][2], 2)));
+        p2_nz = planes[i][2] / (sqrt(pow(planes[i + 1][0], 2) + pow(planes[i + 1][1], 2) + pow(planes[i + 1][2], 2)));
+
+        //cout << myShape << "-" << i << "; 1nx" << p1_nx << "; 1ny: " << p1_ny << "; 1nz: " << p1_nz << "; 2nx: " << p2_nx << "; 2ny: " << p2_ny << "; 2nz: " << p2_nz << std::endl;
+
+        //C_angle = invCos((n_A ° n_B )  /  (n_A| * | n_B| ))
+        //note ° = dotproduct [ a.x* b.x + a.y * b.y + a.z * b.z ]
+
+        long double plane_dotProduct = (p1_nx * p2_nx) + (p1_ny * p2_ny) + (p1_nz * p2_nz);
+        long double p1_length = sqrt((pow(p1_nx, 2) + pow(p1_ny, 2) + pow(p1_nz, 2)));
+        long double p2_length = sqrt((pow(p2_nx, 2) + pow(p2_ny, 2) + pow(p2_nz, 2)));
+        long double c_angle = asin(plane_dotProduct / ((p1_length * p2_length)));
+
+        //cout << myShape << "-" << i << "; dotProduct: " << plane_dotProduct << " ; plane_1 lenght: " << p1_length << " ; plane_2 length: " << p2_length << " ; angle C: " << c_angle << std::endl;
+
+
+        //Plane_centerPoint[plane_counter];
+        float p1_cx = plane_centerPoint_x[i];
+        float p1_cy = plane_centerPoint_y[i];
+        float p1_cz = plane_centerPoint_z[i];
+
+        float p2_cx = plane_centerPoint_x[i + 1];
+        float p2_cy = plane_centerPoint_y[i + 1];
+        float p2_cz = plane_centerPoint_z[i + 1];
+
+        c_length = sqrt((pow(p2_cx, 2) - pow(p1_cx, 2)) +
+            (pow(p2_cy, 2) - pow(p1_cy, 2)) +
+            (pow(p2_cz, 2) - pow(p1_cz, 2)));
+
+
+        //find Another angle (assuming A=B)
+        a_angle = (180 - c_angle) / 2;
+
+        //cout << myShape << "-" << i << "; a_angle: " << a_angle << std::endl;
+
+        //find lengh of a
+        a_length = (c_length * sin(a_angle)) / sin(c_angle);
+
+
+        //cout << myShape << "-" << i << "; a_length: " << a_length << std::endl;
+
+        //to mm
+        boxDim[i] = a_length * 1000 * 2;
+
+
+    }
+    //NaN error
+    if (boxDim[0] != boxDim[0]) {
+        box_radius = 0;
+    }
+    else {
+        box_radius = boxDim[0];
+    }
+    //NaN error
+    if (boxDim[1] != boxDim[1]) {
+        box_hight = 0;
+    }
+    else {
+        box_hight = boxDim[1];
+    }
+
+
+    return boxDim;
+}
+
+
+float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
+
+    pcl::ModelCoefficients::Ptr coefficients_planes1;
+    pcl::ModelCoefficients::Ptr coefficients_planes2;
+    pcl::ModelCoefficients::Ptr coefficients_planes3;
 
     std::array<pcl::ModelCoefficients::Ptr, 3> plane_coe_array;
     plane_coe_array[0] = coefficients_planes1;
@@ -306,12 +310,9 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::
 
 
         //get center
-        std::ostringstream oss;
-        oss << "merged_fitpc2.pcd" + plane_counter;
-        //reader.read(oss, *plane_array[plane_counter]);
+
         Eigen::Vector4f centroid;
         pcl::compute3DCentroid(*cloud_in, centroid);
-        //cout<<centroid[0] << endl << centroid[1] << endl << centroid[2] << endl;
 
         //float test = centroid[0];
         plane_centerPoint_x[plane_counter] = centroid[0];
