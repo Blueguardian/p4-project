@@ -91,18 +91,19 @@ Camerahandler::Camerahandler()
             viewerOneOff(viewer);
             viewer.showCloud(cloud, "OG");
             viewer.showCloud(cloudFiltered4, "Filtered");
-            
+            //viewerUpdate(viewer, cloudFiltered4);
             isViewer = true;
         }
         else {
             viewer.showCloud(cloud, "OG");
             viewer.showCloud(cloudFiltered4, "Filtered");
-            
+            //viewerUpdate(viewer, cloudFiltered4);
 
         }
         //float cylinder_ratio = Ransacer.check_cyl(cloudFiltered4);
         //std::cout << cylinder_ratio << endl;
         //Ransacer.shape_cyl();,
+
 
         return;
     }
