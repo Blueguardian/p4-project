@@ -226,7 +226,6 @@ double* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients
     return boxDim;
 }
 
-
 float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
 
     pcl::ModelCoefficients::Ptr coefficients_planes1;

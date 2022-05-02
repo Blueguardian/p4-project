@@ -11,12 +11,15 @@ pcl::visualization::CloudViewer viewer("CloudViewer");
     
 // Pointcloud objects
 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
-pcl::PointCloud<PointT>::Ptr cloudFiltered(new pcl::PointCloud<PointT>); // We need to make a new cloud for each filter because of
-pcl::PointCloud<PointT>::Ptr cloudFiltered2(new pcl::PointCloud<PointT>);// boost shared Ptr will go out of scope and free the pointer
-pcl::PointCloud<PointT>::Ptr cloudFiltered3(new pcl::PointCloud<PointT>);// if we do not, we will invalidate the heap.
-pcl::PointCloud<PointT>::Ptr cloudFiltered4(new pcl::PointCloud<PointT>);  
-pcl::PointCloud<PointT>::Ptr cloudFiltered5(new pcl::PointCloud<PointT>); 
+pcl::PointCloud<PointT>::Ptr cloudFilteredX(new pcl::PointCloud<PointT>); // We need to make a new cloud for each filter because of
+pcl::PointCloud<PointT>::Ptr cloudFilteredXY(new pcl::PointCloud<PointT>);// boost shared Ptr will go out of scope and free the pointer
+pcl::PointCloud<PointT>::Ptr cloudFilteredXYZ(new pcl::PointCloud<PointT>);// if we do not, we will invalidate the heap.
+pcl::PointCloud<PointT>::Ptr cloudDownsampled(new pcl::PointCloud<PointT>);  
+pcl::PointCloud<PointT>::Ptr cloudPlaneRemoved(new pcl::PointCloud<PointT>); 
+pcl::PointCloud<PointT>::Ptr cloudFiltered(new pcl::PointCloud<PointT>);
+pcl::PointCloud<PointT>::Ptr cloud_cluster(new pcl::PointCloud<PointT>);
 pcl::PointIndices::Ptr indices(new pcl::PointIndices);
+
 
 
 Camerahandler::Camerahandler()
@@ -41,8 +44,7 @@ Camerahandler::Camerahandler()
 
     void Camerahandler :: onNewData(const royale::DepthData* data)  {
         
-        cloud = points2pcl(data, 0); 
-        RANSACHandler Ransacer(cloud);
+        cloud = points2pcl(data, 100); 
         std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
 
         if (cloud->size() == 0)
@@ -60,46 +62,114 @@ Camerahandler::Camerahandler()
             pass.setInputCloud(cloud);
             pass.setFilterFieldName("x");
             pass.setFilterLimits(filter_lims[0], filter_lims[1]);
-            pass.filter(*cloudFiltered);
+            pass.filter(*cloudFilteredX);
 
-            pass.setInputCloud(cloudFiltered);
+            pass.setInputCloud(cloudFilteredX);
             pass.setFilterFieldName("y");
             pass.setFilterLimits(filter_lims[2], filter_lims[3]);
-            pass.filter(*cloudFiltered2);
+            pass.filter(*cloudFilteredXY);
 
-            pass.setInputCloud(cloudFiltered2);
+            pass.setInputCloud(cloudFilteredXY);
             pass.setFilterFieldName("z");
             pass.setFilterLimits(filter_lims[4], filter_lims[5]);
-            pass.filter(*cloudFiltered3);
+            pass.filter(*cloudFilteredXYZ);
 
             pcl::VoxelGrid<pcl::PointXYZ> dsfilt;
-            dsfilt.setInputCloud(cloudFiltered3);
+            dsfilt.setInputCloud(cloudFilteredXYZ);
             dsfilt.setLeafSize(filt_leaf_size, filt_leaf_size, filt_leaf_size);
-            dsfilt.filter(*cloudFiltered4);
+            dsfilt.filter(*cloudDownsampled);
 
-            std::cerr << "PointCloud after downsampling: " << cloudFiltered4->width * cloudFiltered4->height << " data points." << std::endl;
-            buffer.push(cloudFiltered4);
+            std::cerr << "PointCloud after downsampling: " << cloudDownsampled->width * cloudDownsampled->height << " data points." << std::endl;
+            buffer.push(cloudDownsampled);
             indx++;
         }
 
-        if (cloud->size() == 0)
+        if (cloudDownsampled->size() == 0)
         {
             return;
         }
 
-        if (!isViewer) {
-            viewerOneOff(viewer);
-            viewer.showCloud(cloud, "OG");
-            viewer.showCloud(cloudFiltered4, "Filtered");
-            //viewerUpdate(viewer, cloudFiltered4);
-            isViewer = true;
+        // perform ransac planar filtration to remove table top
+        pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+        pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+        // Create the segmentation object
+        pcl::SACSegmentation<pcl::PointXYZ> seg1;
+        // Optional
+        seg1.setOptimizeCoefficients(true);
+        // Mandatory
+        seg1.setModelType(pcl::SACMODEL_PLANE);
+        seg1.setMethodType(pcl::SAC_RANSAC);
+        seg1.setMaxIterations(100);
+        seg1.setDistanceThreshold(0.015);
+        seg1.setInputCloud(cloudDownsampled);
+        seg1.segment(*inliers, *coefficients);
+
+        // Create the filtering object
+        pcl::ExtractIndices<pcl::PointXYZ> extract;
+        extract.setInputCloud(cloudDownsampled);
+        extract.setIndices(inliers);
+        extract.setNegative(true);
+        extract.filter(*cloudPlaneRemoved);
+
+        // Create the KdTree object for the search method of the extraction
+        pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
+        tree->setInputCloud(cloudPlaneRemoved);
+
+        // create the extraction object for the clusters
+        std::vector<pcl::PointIndices> cluster_indices;
+        pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+        // specify euclidean cluster parameters
+        ec.setClusterTolerance(0.02); // 2cm
+        ec.setMinClusterSize(100);
+        ec.setMaxClusterSize(25000);
+        ec.setSearchMethod(tree);
+        ec.setInputCloud(cloudPlaneRemoved);
+        // exctract the indices pertaining to each cluster and store in a vector of pcl::PointIndices
+        ec.extract(cluster_indices);
+
+        if (cluster_indices.size() == 0) {
+            return;
         }
-        else {
-            viewer.showCloud(cloud, "OG");
-            viewer.showCloud(cloudFiltered4, "Filtered");
-            //viewerUpdate(viewer, cloudFiltered4);
+
+        float distOrigin2center = 0;
+        float smallestdist = 1000;
+        std::vector<pcl::PointIndices>::const_iterator ClosestIndex;
+        for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it)
+        {
+            pcl::CentroidPoint<PointT> centroid;
+            PointT center;
+
+            for (const auto& idx : it->indices){
+                centroid.add((*cloudPlaneRemoved)[idx]);
+            }
+            centroid.get(center);
+            distOrigin2center = sqrt(pow(center.x, 2) + pow(center.y, 2));
+            if(smallestdist > distOrigin2center)
+            {
+                smallestdist = distOrigin2center;
+                ClosestIndex = it;
+            }
 
         }
+        cloud_cluster->clear();
+        for (const auto& idx : ClosestIndex->indices) {
+            cloud_cluster->push_back((*cloudPlaneRemoved)[idx]);
+        }
+
+        if (!isViewer) {
+        viewerOneOff(viewer);
+        //viewer.showCloud(cloud_cluster, "OG");
+        viewer.showCloud(cloud_cluster, "cluster");
+           
+        isViewer = true;
+        }
+        else {
+            //viewer.showCloud(cloud_cluster, "OG");
+            viewer.showCloud(cloud_cluster, "cluster");
+            
+
+        }
+        //RANSACHandler Ransacer(cloud);
         //float cylinder_ratio = Ransacer.check_cyl(cloudFiltered4);
         //std::cout << cylinder_ratio << endl;
         //Ransacer.shape_cyl();,
@@ -107,11 +177,6 @@ Camerahandler::Camerahandler()
 
         return;
     }
-    /**
-    * The StreamIds for all streams that are expected to be received.  For this example, it's a
-    * constant set, so doesn't need protecting with a mutex.
-    */
-   
 
     void Camerahandler::viewerOneOff(pcl::visualization::CloudViewer& viewer)
     {
@@ -139,30 +204,3 @@ Camerahandler::Camerahandler()
         }
         return cloud;
     }
-
-    /*
-    void XYZfilter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
-    float filt_leaf_size = 0.005;
-    std::array<float, 6> filter_lims = { -0.15, 0.15, -0.15, 0.15, 0, 3 }; // x-min, x-max, y-min, y-max, z-min, z-max
-    pcl::PassThrough<PointT> pass(true);
-
-    pass.setInputCloud(cloud);
-    pass.setFilterFieldName("x");
-    pass.setFilterLimits(filter_lims[0], filter_lims[1]);
-    pass.filter(*cloud);
-
-    pass.setInputCloud(cloud);
-    pass.setFilterFieldName("y");
-    pass.setFilterLimits(filter_lims[2], filter_lims[3]);
-    pass.filter(*cloud);
-
-    pass.setInputCloud(cloud);
-    pass.setFilterFieldName("z");
-    pass.setFilterLimits(filter_lims[4], filter_lims[5]);
-    pass.filter(*cloud);
-
-    pcl::VoxelGrid<pcl::PointXYZ> dsfilt;
-    dsfilt.setInputCloud(cloud);
-    dsfilt.setLeafSize(filt_leaf_size, filt_leaf_size, filt_leaf_size);
-    dsfilt.filter(*cloud);
-    }*/
