@@ -131,7 +131,6 @@ void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoeff
     cyl.values.push_back(cylinder_height);
 }
 
-
 float* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients & p1, const pcl::ModelCoefficients & p2, const pcl::ModelCoefficients & p3) {
         //for loop with runs the amount of planes
         float boxDim[3];                   //boxDim[0] = width; BoxDim[1] = hight
@@ -292,6 +291,7 @@ float* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients 
 float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
    
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
+    pcl::NormalEstimation<PointT, pcl::Normal> ne_BOX;
 
     int nPoints = cloud->points.size();
     int i = 0;
@@ -304,10 +304,10 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     plane_array[1] = cloud_plane2;
     plane_array[2] = cloud_plane3;
 
-    ne.setSearchMethod(tree);
-    ne.setInputCloud(cloud);
-    ne.setKSearch(50);
-    ne.compute(*cloud_normals);
+    ne_BOX.setSearchMethod(tree);
+    ne_BOX.setInputCloud(cloud);
+    ne_BOX.setKSearch(50);
+    ne_BOX.compute(*cloud_normals);
     seg_box.setOptimizeCoefficients(true);
     seg_box.setMethodType(pcl::SAC_RANSAC);
     seg_box.setModelType(pcl::SACMODEL_PLANE);
@@ -399,6 +399,6 @@ tuple <float, float> RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Pt
     extract_sph.filter(*shpPoints);
 
     //cloudpoint ratio
-    float sphRatio = (double)cylPoints->points.size() / (double)cloud->points.size() * 100;
+    float sphRatio = (double)shpPoints->points.size() / (double)cloud->points.size() * 100;
     return { sphRatio, coefficients_sphere->values[3] };
 }

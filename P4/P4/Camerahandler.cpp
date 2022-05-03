@@ -170,8 +170,8 @@ Camerahandler::Camerahandler()
         std::cout<< "Cylinder Ratio: " << Cylinderratio << " Radius: " << Radiuscyl *100 << " cm" << endl;
         auto [Sphratio, Radiussph] = Ransacer.check_sph(cloud_cluster);
         std::cout << "Sphere Ratio: " << Sphratio << " Radius: " << Radiussph * 100 << " cm" << endl;
-        //float Boxratio = Ransacer.check_box(cloud_cluster);
-        //std::cout << "Box Ratio: " << Boxratio <<  endl;
+        float Boxratio = Ransacer.check_box(cloud_cluster);
+        std::cout << "Box Ratio: " << Boxratio <<  endl;
         //Ransacer.shape_cyl();,
         return;
     }
