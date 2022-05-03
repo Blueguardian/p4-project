@@ -167,12 +167,24 @@ Camerahandler::Camerahandler()
         }
         RANSACHandler Ransacer(cloud);
         auto [Cylinderratio, Radiuscyl] = Ransacer.check_cyl(cloud_cluster);
-        std::cout<< "Cylinder Ratio: " << Cylinderratio << " Radius: " << Radiuscyl *100 << " cm" << endl;
+        std::cout << "Cylinder Ratio: " << Cylinderratio << " Radius: " << Radiuscyl *100 << " cm" << endl;
         auto [Sphratio, Radiussph] = Ransacer.check_sph(cloud_cluster);
         std::cout << "Sphere Ratio: " << Sphratio << " Radius: " << Radiussph * 100 << " cm" << endl;
         float Boxratio = Ransacer.check_box(cloud_cluster);
         std::cout << "Box Ratio: " << Boxratio <<  endl;
-        //Ransacer.shape_cyl();,
+        /*
+        std::vector<float> ratios;
+        ratios.push_back(Cylinderratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
+        int shape = std::max_element(ratios.begin(), ratios.end()) - ratios.begin();
+        switch (shape) {
+
+            case 0:  //Cylinder 
+
+            case 1: 
+
+            case 2: 
+               std::vector<float> boxdim = Ransacer.shape_box();
+        }*/
         return;
     }
 

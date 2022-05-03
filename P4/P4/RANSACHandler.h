@@ -61,16 +61,17 @@ public:
         float l;
     };
     RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud);
-    float* shape_box(const int nPlanes, const pcl::ModelCoefficients& p1, const pcl::ModelCoefficients& p2, const pcl::ModelCoefficients& p3);
-    void shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
+    
     std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction);
     float dotProduct(pcl::PointXYZ a, pcl::PointXYZ b);
     float normPointT(pcl::PointXYZ c);
 
     tuple <float,float> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    //tuple <float, pcl::ModelCoefficients::Ptr> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     float check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     tuple <float, float> check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
+
+    std::vector <float> shape_box();
+    void shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
 };
 
 
