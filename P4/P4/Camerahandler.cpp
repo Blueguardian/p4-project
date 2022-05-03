@@ -166,12 +166,13 @@ Camerahandler::Camerahandler()
             viewer.showCloud(cloud_cluster, "cluster");
         }
         RANSACHandler Ransacer(cloud);
-        auto [cylinder_ratio, Radius] = Ransacer.check_cyl(cloud_cluster);
-        std::cout<< "Cylinder Ratio: " << cylinder_ratio << " Radius: " << Radius*100 << " cm" << endl;
-        float Boxratio = Ransacer.check_box(cloud_cluster);
+        auto [Cylinderratio, Radiuscyl] = Ransacer.check_cyl(cloud_cluster);
+        std::cout<< "Cylinder Ratio: " << Cylinderratio << " Radius: " << Radiuscyl *100 << " cm" << endl;
+        auto [Sphratio, Radiussph] = Ransacer.check_sph(cloud_cluster);
+        std::cout << "Sphere Ratio: " << Sphratio << " Radius: " << Radiussph * 100 << " cm" << endl;
+        //float Boxratio = Ransacer.check_box(cloud_cluster);
+        //std::cout << "Box Ratio: " << Boxratio <<  endl;
         //Ransacer.shape_cyl();,
-
-
         return;
     }
 

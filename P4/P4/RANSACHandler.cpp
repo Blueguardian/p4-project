@@ -6,14 +6,28 @@
 
 #include "RANSACHandler.h"
 
-pcl::ModelCoefficients::Ptr coefficients_sphere(new pcl::ModelCoefficients);
-pcl::ModelCoefficients::Ptr coefficients_box(new pcl::ModelCoefficients);
 pcl::ModelCoefficients::Ptr coefficients_cylinder(new pcl::ModelCoefficients);
 pcl::PointIndices :: Ptr inliers_cylinder(new pcl::PointIndices);
 pcl::PointCloud<PointT>::Ptr cylPoints(new pcl::PointCloud<PointT>);
-pcl::ModelCoefficients :: Ptr coefficients_planes1(new pcl::ModelCoefficients), coefficients_planes2(new pcl::ModelCoefficients), coefficients_planes3(new pcl::ModelCoefficients);
 //pcl::PointIndices inliers_plane1(new pcl::PointIndices), inliers_plane2(new pcl::PointIndices), inliers_plane3(new pcl::PointIndices);
-pcl::PointIndices :: Ptr inliers_plane1(new pcl::PointIndices), inliers_plane2(new pcl::PointIndices), inliers_plane3(new pcl::PointIndices);
+
+//box variables
+pcl::ModelCoefficients::Ptr coefficients_planes1(new pcl::ModelCoefficients), coefficients_planes2(new pcl::ModelCoefficients), coefficients_planes3(new pcl::ModelCoefficients);
+pcl::PointIndices::Ptr inliers_plane1(new pcl::PointIndices), inliers_plane2(new pcl::PointIndices), inliers_plane3(new pcl::PointIndices);
+pcl::ModelCoefficients::Ptr coefficients_box(new pcl::ModelCoefficients);
+pcl::PointCloud<PointT>::Ptr cloud_plane1(new pcl::PointCloud<PointT>()), cloud_plane2(new pcl::PointCloud<PointT>()), cloud_plane3(new pcl::PointCloud<PointT>());
+pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
+pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_box;
+pcl::ExtractIndices<PointT> extract_box;
+pcl::NormalEstimation<PointT, pcl::Normal> ne;
+std::array<pcl::PointIndices::Ptr, 3> inliers_array;
+std::array<pcl::ModelCoefficients::Ptr, 3> plane_coe_array;
+std::array<pcl::PointCloud<pcl::PointXYZ>::Ptr, 3> plane_array;
+
+//Sphere variables
+pcl::ModelCoefficients::Ptr coefficients_sphere(new pcl::ModelCoefficients);
+pcl::PointIndices::Ptr inliers_sphere(new pcl::PointIndices);
+pcl::PointCloud<PointT>::Ptr shpPoints(new pcl::PointCloud<PointT>);
 
 
 RANSACHandler::RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud) {
@@ -52,6 +66,7 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
 }
 
 tuple <float,float> RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+    
     pcl::NormalEstimation<PointT, pcl::Normal> ne;
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
     pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_cylinder;
@@ -275,25 +290,16 @@ float* RANSACHandler::shape_box(const int nPlanes, const pcl::ModelCoefficients 
     }
 
 float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-
-    
-    pcl::PointCloud<PointT>::Ptr cloud_plane1(new pcl::PointCloud<PointT>()), cloud_plane2(new pcl::PointCloud<PointT>()), cloud_plane3(new pcl::PointCloud<PointT>());
+   
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
-    pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
-    pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_box;
-    pcl::ExtractIndices<PointT> extract_box;
-    pcl::NormalEstimation<PointT, pcl::Normal> ne;
-    std::array<pcl::PointIndices::Ptr, 3> inliers_array;
-    std::array<pcl::ModelCoefficients::Ptr, 3> plane_coe_array;
-    std::array<pcl::PointCloud<pcl::PointXYZ>::Ptr, 3> plane_array;
 
     int nPoints = cloud->points.size();
     int i = 0;
     double ratio_planes[3];
 
-   //plane_coe_array[0] = coefficients_planes1;
-    //plane_coe_array[1] = coefficients_planes2;
-    //plane_coe_array[2] = coefficients_planes3;
+    plane_coe_array[0] = coefficients_planes1;
+    plane_coe_array[1] = coefficients_planes2;
+    plane_coe_array[2] = coefficients_planes3;
     plane_array[0] = cloud_plane1;
     plane_array[1] = cloud_plane2;
     plane_array[2] = cloud_plane3;
@@ -309,9 +315,9 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     seg_box.setMaxIterations(10000);
     seg_box.setDistanceThreshold(0.001);
     seg_box.setRadiusLimits(0.005, 0.150);
-    //inliers_array[0] = inliers_plane1;
-    //inliers_array[1] = inliers_plane2;
-    //inliers_array[2] = inliers_plane3;
+    inliers_array[0] = inliers_plane1;
+    inliers_array[1] = inliers_plane2;
+    inliers_array[2] = inliers_plane3;
     ratio_planes[0] = 0;
     ratio_planes[1] = 0;
     ratio_planes[2] = 0;
@@ -320,7 +326,7 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     {
         seg_box.setInputCloud(cloud);
         seg_box.setInputNormals(cloud_normals);
-        seg_box.segment(*inliers_plane1, *coefficients_planes1);
+        seg_box.segment(*inliers_array[i], *plane_coe_array[i]);
 
         /*
         if (inliers_array[i]->indices.size() == 0) {
@@ -331,7 +337,7 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
         //Save plane inliers for computation (?)
         pcl::ExtractIndices<pcl::PointXYZ> extract_plane;
         extract_plane.setInputCloud(cloud);
-        extract_plane.setIndices(inliers_plane1);
+        extract_plane.setIndices(inliers_array[i]);
         extract_plane.setNegative(false);
         extract_plane.filter(*plane_array[i]);
 
@@ -360,18 +366,16 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     return boxRatio;
 }
 
-float RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients_sph) {
+tuple <float, float> RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
+
     pcl::NormalEstimation<PointT, pcl::Normal> ne;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in;
-    cloud_in = cloud;
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
     pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_sph;
     pcl::ExtractIndices<PointT> extract_sph;
     pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
-    pcl::PointIndices::Ptr inliers_sph(new pcl::PointIndices);
 
     ne.setSearchMethod(tree);
-    ne.setInputCloud(cloud_in);
+    ne.setInputCloud(cloud);
     ne.setKSearch(50);
     ne.compute(*cloud_normals);
 
@@ -379,22 +383,22 @@ float RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::
     seg_sph.setMethodType(pcl::SAC_RANSAC);
     seg_sph.setModelType(pcl::SACMODEL_SPHERE);
     seg_sph.setNormalDistanceWeight(0.01);
-    seg_sph.setMaxIterations(10000);
-    seg_sph.setDistanceThreshold(0.005);
-    seg_sph.setRadiusLimits(0.005, 0.15);
-    seg_sph.setInputCloud(cloud_in);
+    seg_sph.setMaxIterations(500);
+    seg_sph.setDistanceThreshold(0.0012);
+    seg_sph.setRadiusLimits(0.005, 0.150);
+    seg_sph.setInputCloud(cloud);
     seg_sph.setInputNormals(cloud_normals);
 
-    //Obtain the inliers of cylinder
-    seg_sph.segment(*inliers_sph, *coefficients_sph);
+    //Obtain the inliers of sphere
+    seg_sph.segment(*inliers_sphere, *coefficients_sphere);
 
-    // Save the cylinder inliers                                       
-    extract_sph.setInputCloud(cloud_in);
-    extract_sph.setIndices(inliers_sph);
+    // Save the sphere inliers                                       
+    extract_sph.setIndices(inliers_sphere);
+    extract_sph.setInputCloud(cloud);
     extract_sph.setNegative(false);
-    extract_sph.filter(*cloud_in);
+    extract_sph.filter(*shpPoints);
 
     //cloudpoint ratio
-    float sphRatio = (double)cloud_in->points.size() / (double)cloud_in->points.size() * 100;
-    return sphRatio;
+    float sphRatio = (double)cylPoints->points.size() / (double)cloud->points.size() * 100;
+    return { sphRatio, coefficients_sphere->values[3] };
 }

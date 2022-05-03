@@ -70,7 +70,7 @@ public:
     tuple <float,float> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     //tuple <float, pcl::ModelCoefficients::Ptr> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     float check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    float check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients_sph);
+    tuple <float, float> check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
 };
 
 
