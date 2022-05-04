@@ -5,9 +5,6 @@
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
-
-pcl::visualization::CloudViewer viewer("CloudViewer");
-
     
 // Pointcloud objects
 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
@@ -19,7 +16,7 @@ pcl::PointCloud<PointT>::Ptr cloudPlaneRemoved(new pcl::PointCloud<PointT>);
 pcl::PointCloud<PointT>::Ptr cloudFiltered(new pcl::PointCloud<PointT>);
 pcl::PointCloud<PointT>::Ptr cloud_cluster(new pcl::PointCloud<PointT>);
 pcl::PointIndices::Ptr indices(new pcl::PointIndices);
-pcl::visualization::PCLVisualizer::Ptr viewer;
+pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer);
 bool isViewer = false;
 int vp = 0;
 
@@ -57,7 +54,8 @@ Camerahandler::Camerahandler()
         {
             return;
         }
-
+        viewer->removeAllShapes();
+        viewer->removeAllPointClouds();
         else if (cloud->size() > 0) {
             
             //XYZfilter(cloud);
@@ -162,16 +160,6 @@ Camerahandler::Camerahandler()
             cloud_cluster->push_back((*cloudPlaneRemoved)[idx]);
         }
 
-        if (!isViewer) {
-            viewerOneOff(viewer);
-            //viewer.showCloud(cloud_cluster, "OG");
-            viewer.showCloud(cloud_cluster, "cluster");         
-            isViewer = true;
-        }
-        else {
-            //viewer.showCloud(cloud_cluster, "OG");
-            viewer.showCloud(cloud_cluster, "cluster");
-        }
         RANSACHandler Ransacer(cloud);
         auto [Cylinderratio, Radiuscyl] = Ransacer.check_cyl(cloud_cluster);
         std::cout << "Cylinder Ratio: " << Cylinderratio << " Radius: " << Radiuscyl *100 << " cm" << endl;
@@ -195,20 +183,6 @@ Camerahandler::Camerahandler()
         return;
     }
 
-    void Camerahandler::viewerOneOff(pcl::visualization::CloudViewer& viewer)
-    {
-        pcl::PointXYZ o;
-        o.x = 1.0;
-        o.y = 0;
-        o.z = 0;
-        std::cout << "i only run once" << std::endl;
-    }
-
-    void Camerahandler::viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud)
-    {
-    viewer.showCloud(cloud, "cloud");
-    }
-
     pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
     {
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -223,7 +197,7 @@ Camerahandler::Camerahandler()
     }
 
 
-pcl::visualization::PCLVisualizer::Ptr initViewer()
+pcl::visualization::PCLVisualizer::Ptr Camerahandler::initViewer()
 {
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
     viewer->createViewPort(0.0, 0.0, 1.0, 1.0, vp);

@@ -95,7 +95,7 @@ private:
 //    void viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud);
 //    void viewerOneOff(pcl::visualization::CloudViewer& viewer);
 
-pcl::visualization::PCLVisualizer::Ptr initViewer()
+    pcl::visualization::PCLVisualizer::Ptr initViewer();
 
 };
 

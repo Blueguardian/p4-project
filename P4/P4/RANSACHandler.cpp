@@ -117,105 +117,44 @@ void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoeff
     cyl.values.push_back(cylinder_height);
 }
 
-std::vector <float> RANSACHandler::shape_box() {
-
-    int nPlanes = 0;
-    if (abs(coefficients_planes3->values[0]) > 2) {
-        ; nPlanes = 2;
-        }
-    if (abs(coefficients_planes2->values[0]) > 2) {
-        ; nPlanes = 1;
-    }
+std::vector <float> RANSACHandler::shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 
     //for loop with runs the amount of planes
     std::vector <float> boxDim = {0,0,0};                  //boxDim[0] = width; BoxDim[1] = hight
+    Eigen::Matrix3f::Ptr eigen_vec;
     float planes[3][4];
     float box_length;
     float box_width;
     float box_height;
 
-    if (nPlanes > 2) {                  //if the amount of planes is more then 2
-        //first plane
-        planes[0][0] = coefficients_planes1->values[0];
-        planes[0][1] = coefficients_planes1->values[1];
-        planes[0][2] = coefficients_planes1->values[2];
-        planes[0][3] = coefficients_planes1->values[3];
-        //second plane
-        planes[1][0] = coefficients_planes2->values[0];
-        planes[1][1] = coefficients_planes2->values[1];
-        planes[1][2] = coefficients_planes2->values[2];
-        planes[1][3] = coefficients_planes2->values[3];
-        //third plane
-        planes[2][0] = coefficients_planes3->values[0];
-        planes[2][1] = coefficients_planes3->values[1];
-        planes[2][2] = coefficients_planes3->values[2];
-        planes[2][3] = coefficients_planes3->values[3];
-    }
-    else {                              //if there are 2 or less planes do this.
-        //first plane
-        planes[0][0] = coefficients_planes1->values[0];
-        planes[0][1] = coefficients_planes1->values[1];
-        planes[0][2] = coefficients_planes1->values[2];
-        planes[0][3] = coefficients_planes1->values[3];
-        //second plane
-        planes[1][0] = coefficients_planes2->values[0];
-        planes[1][1] = coefficients_planes2->values[1];
-        planes[1][2] = coefficients_planes2->values[2];
-        planes[1][3] = coefficients_planes2->values[3];
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 4; j++){
+            planes[i][j] = coefficients_planes1->values[j];
+        }
     }
 
-    if (nPlanes <= 2) {
-        //Plane_centerPoint[plane_counter];
-        float p1_cx = plane_centerPoint_x[0];
-        float p1_cy = plane_centerPoint_y[0];
-        float p1_cz = plane_centerPoint_z[0];
 
-        float p2_cx = plane_centerPoint_x[1];
-        float p2_cy = plane_centerPoint_y[1];
-        float p2_cz = plane_centerPoint_z[1];
+    for(int i = 0; i < 3; i++){
 
-        float p1_nx = planes[0][0] / (sqrt(pow(planes[0][0], 2) + pow(planes[0][1], 2) + pow(planes[0][2], 2)));
-        float p1_ny = planes[0][1] / (sqrt(pow(planes[0][0], 2) + pow(planes[0][1], 2) + pow(planes[0][2], 2)));
-        float p1_nz = planes[0][2] / (sqrt(pow(planes[0][0], 2) + pow(planes[0][1], 2) + pow(planes[0][2], 2)));
-        float p2_nx = planes[1][0] /
-            (sqrt(pow(planes[1][0], 2) + pow(planes[1][1], 2) + pow(planes[1][2], 2)));
-        float p2_ny = planes[1][1] /
-            (sqrt(pow(planes[1][0], 2) + pow(planes[1][1], 2) + pow(planes[1][2], 2)));
-        float p2_nz = planes[1][2] /
-            (sqrt(pow(planes[1][0], 2) + pow(planes[1][1], 2) + pow(planes[1][2], 2)));
+        float p_cx = plane_centerPoint_x[i];
+        float p_cy = plane_centerPoint_y[i];
+        float p_cz = plane_centerPoint_z[i];
 
-        float v_x = p2_cx - p1_cx;
-        float v_y = p2_cy - p1_cy;
-        float v_z = p2_cz - p1_cz;
-        float point_dist = v_x * p1_nx + v_y * p1_ny + v_z * p1_nz;
-        float projected_point_x = p2_cx - point_dist * p1_nx;
-        float projected_point_y = p2_cy - point_dist * p1_ny;
-        float projected_point_z = p2_cz - point_dist * p1_nz;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPCAprojection (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PCA<pcl::PointXYZ> pca;
+        pca.setInputCloud(cloud);
+        pca.setIndices(inliers_array[i]);
+        eigen_vec = pca.getEigenVectors();
+        std::cout << eigen_vec << std::endl;
 
-        float length_a = sqrt(
-            abs(projected_point_x - p1_cx) + abs(projected_point_y - p1_cy) + abs(projected_point_z - p1_cz));
-        float length_b = sqrt(
-            abs(projected_point_x - p2_cx) + abs(projected_point_y - p2_cy) + abs(projected_point_z - p2_cz));
-        float length_c = sqrt((pow(p2_cx, 2) - pow(p1_cx, 2)) +
-            (pow(p2_cy, 2) - pow(p1_cy, 2)) +
-            (pow(p2_cz, 2) - pow(p1_cz, 2)));
 
-        box_length = length_a * 1000 * 2; //Length
-        box_width = length_b * 1000 * 2; //Width
-        box_height = 0;
+        // Transform the original cloud to the origin where the principal components correspond to the axes.
+        Eigen::Matrix4f projectionTransform(Eigen::Matrix4f::Identity());
+        projectionTransform.block<3,3>(0,0) = eigenVectorsPCA.transpose();
+        projectionTransform.block<3,1>(0,3) = -1.f * (projectionTransform.block<3,3>(0,0) * pcaCentroid.head<3>());
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPointsProjected (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::transformPointCloud(*cloudSegmented, *cloudPointsProjected, projectionTransform);
 
-    }
-    else if (nPlanes > 2) {
-
-        float p1_cx = plane_centerPoint_x[0];
-        float p1_cy = plane_centerPoint_y[0];
-        float p1_cz = plane_centerPoint_z[0];
-        float p2_cx = plane_centerPoint_x[1];
-        float p2_cy = plane_centerPoint_y[1];
-        float p2_cz = plane_centerPoint_z[1];
-        float p3_cx = plane_centerPoint_x[2];
-        float p3_cy = plane_centerPoint_y[2];
-        float p3_cz = plane_centerPoint_z[2];
 
         float p1_nx = planes[0][0] / (sqrt(pow(planes[0][0], 2) + pow(planes[0][1], 2) + pow(planes[0][2], 2)));
         float p1_ny = planes[0][1] / (sqrt(pow(planes[0][0], 2) + pow(planes[0][1], 2) + pow(planes[0][2], 2)));
@@ -323,12 +262,6 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
         seg_box.setInputNormals(cloud_normals);
         seg_box.segment(*inliers_array[i], *plane_coe_array[i]);
 
-        /*
-        if (inliers_array[i]->indices.size() == 0) {
-            //cout << "Error: could not estimate a planer model. ||  Amount of Points: " << cloud_filtered->points.size() << endl;
-            break;
-        }*/
-
         //Save plane inliers for computation (?)
         pcl::ExtractIndices<pcl::PointXYZ> extract_plane;
         extract_plane.setInputCloud(cloud);
@@ -337,7 +270,7 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
         extract_plane.filter(*plane_array[i]);
 
         //Ratio at which points are considered belonging to the plane
-        ratio_planes[i] = (double)plane_array[i]->points.size() / (double)nPoints * 100;
+        ratio_planes[i] = (double)plane_array[i]->points.size() / (double)nPoints;
 
         //Compute the center point and store it in the plane_centerPoint arrays
         Eigen::Vector4f centroid;
@@ -347,16 +280,16 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
         plane_centerPoint_z[i] = centroid[2];
 
         // Remove the planar inliers from normals
-//        pcl::ExtractIndices<pcl::Normal> extract_normals_box;
-//        extract_normals_box.setInputCloud(cloud_normals);
-//        extract_normals_box.setIndices(inliers_array[i]);
-//        extract_normals_box.setNegative(true);
-//        extract_normals_box.filter(*cloud_normals);
+        pcl::ExtractIndices<pcl::Normal> extract_normals_box;
+        extract_normals_box.setInputCloud(cloud_normals);
+        extract_normals_box.setIndices(inliers_array[i]);
+        extract_normals_box.setNegative(true);
+        extract_normals_box.filter(*cloud_normals);
 
         i++;
     }
 
-    float boxRatio = (double)ratio_planes[0] + (double)ratio_planes[1] + (double)ratio_planes[2];
+    float boxRatio = ((double)ratio_planes[0]/3 + (double)ratio_planes[1]/3 + (double)ratio_planes[2]/3)*100;
 
     return boxRatio;
 }
