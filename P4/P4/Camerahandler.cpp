@@ -6,8 +6,6 @@ using namespace royale;
 using namespace sample_utils;
 using namespace std;
 
-pcl::visualization::CloudViewer viewer("CloudViewer");
-
     
 // Pointcloud objects
 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
@@ -19,7 +17,7 @@ pcl::PointCloud<PointT>::Ptr cloudPlaneRemoved(new pcl::PointCloud<PointT>);
 pcl::PointCloud<PointT>::Ptr cloudFiltered(new pcl::PointCloud<PointT>);
 pcl::PointCloud<PointT>::Ptr cloud_cluster(new pcl::PointCloud<PointT>);
 pcl::PointIndices::Ptr indices(new pcl::PointIndices);
-pcl::visualization::PCLVisualizer::Ptr viewer;
+pcl::visualization::PCLVisualizer::Ptr viewerz;
 bool isViewer = false;
 int vp = 0;
 
@@ -50,9 +48,11 @@ Camerahandler::Camerahandler()
         cloud = points2pcl(data, 100); 
         //std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
         if (!isViewer) {
-            viewer = initViewer();
+            viewerz = initViewer();
             isViewer = true;
         }
+        viewerz->removeAllShapes();
+        viewerz->removeAllPointClouds();
         if (cloud->size() == 0)
         {
             return;
@@ -88,8 +88,7 @@ Camerahandler::Camerahandler()
             buffer.push(cloudDownsampled);
             indx++;
         }
-        pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cloudDownsampled, 255, 0, 0);
-        viewer->addPointCloud(cloudDownsampled, cloudDownsampled_color_h, "Cloud Donwsampled", vp)
+        pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cloudDownsampled, 0, 255, 0);
         if (cloudDownsampled->size() == 0)
         {
             return;
@@ -120,7 +119,7 @@ Camerahandler::Camerahandler()
         // Create the KdTree object for the search method of the extraction
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
         tree->setInputCloud(cloudPlaneRemoved);
-
+        
         // create the extraction object for the clusters
         std::vector<pcl::PointIndices> cluster_indices;
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
@@ -162,16 +161,16 @@ Camerahandler::Camerahandler()
             cloud_cluster->push_back((*cloudPlaneRemoved)[idx]);
         }
 
-        if (!isViewer) {
-            viewerOneOff(viewer);
-            //viewer.showCloud(cloud_cluster, "OG");
-            viewer.showCloud(cloud_cluster, "cluster");         
-            isViewer = true;
-        }
-        else {
-            //viewer.showCloud(cloud_cluster, "OG");
-            viewer.showCloud(cloud_cluster, "cluster");
-        }
+        //if (!isViewer) {
+        //    viewerOneOff(viewer);
+        //    //viewer.showCloud(cloud_cluster, "OG");
+        //    viewer.showCloud(cloud_cluster, "cluster");         
+        //    isViewer = true;
+        //}
+        //else {
+        //    //viewer.showCloud(cloud_cluster, "OG");
+        //    viewer.showCloud(cloud_cluster, "cluster");
+        //}
         RANSACHandler Ransacer(cloud);
         auto [Cylinderratio, Radiuscyl] = Ransacer.check_cyl(cloud_cluster);
         std::cout << "Cylinder Ratio: " << Cylinderratio << " Radius: " << Radiuscyl *100 << " cm" << endl;
@@ -192,22 +191,24 @@ Camerahandler::Camerahandler()
             case 2: 
                std::vector<float> boxdim = Ransacer.shape_box();
         }*/
+        viewerz->addPointCloud(cloud_cluster, cloudDownsampled_color_h, "Cluster", vp);
+        viewerz->spinOnce(1, true);
         return;
     }
 
-    void Camerahandler::viewerOneOff(pcl::visualization::CloudViewer& viewer)
-    {
-        pcl::PointXYZ o;
-        o.x = 1.0;
-        o.y = 0;
-        o.z = 0;
-        std::cout << "i only run once" << std::endl;
-    }
+    //void Camerahandler::viewerOneOff(pcl::visualization::CloudViewer& viewer)
+    //{
+    //    pcl::PointXYZ o;
+    //    o.x = 1.0;
+    //    o.y = 0;
+    //    o.z = 0;
+    //    std::cout << "i only run once" << std::endl;
+    //}
 
-    void Camerahandler::viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud)
-    {
-    viewer.showCloud(cloud, "cloud");
-    }
+    //void Camerahandler::viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud)
+    //{
+    //viewer.showCloud(cloud, "cloud");
+    //}
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
     {
@@ -223,13 +224,13 @@ Camerahandler::Camerahandler()
     }
 
 
-pcl::visualization::PCLVisualizer::Ptr initViewer()
+pcl::visualization::PCLVisualizer::Ptr Camerahandler::initViewer()
 {
-    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer", true));
     viewer->createViewPort(0.0, 0.0, 1.0, 1.0, vp);
     viewer->setCameraPosition(0.0, 0.0, -0.5, 0.0, -1.0, 0.0, vp);
     viewer->setSize(800, 600);
-    viewer->setBackgroundColor(bckgr_gray_level, bckgr_gray_level, bckgr_gray_level, vp);
+    viewer->setBackgroundColor(0, 0, 0, vp);
     viewer->addCoordinateSystem(0.25); // Global reference frame (on-camera)
 
     return viewer;
