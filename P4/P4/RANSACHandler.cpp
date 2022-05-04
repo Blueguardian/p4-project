@@ -80,8 +80,8 @@ tuple <float,float> RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr
     seg_cylinder.setModelType(pcl::SACMODEL_CYLINDER);
     seg_cylinder.setNormalDistanceWeight(0.01);
     seg_cylinder.setMaxIterations(500);
-    seg_cylinder.setDistanceThreshold(0.0012);
-    seg_cylinder.setRadiusLimits(0.005, 0.150);
+    seg_cylinder.setDistanceThreshold(0.003);
+    seg_cylinder.setRadiusLimits(0.01, 0.120);
     seg_cylinder.setInputCloud(cloud);
     seg_cylinder.setInputNormals(cloud_normals);
 
@@ -101,8 +101,9 @@ tuple <float,float> RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr
 
 void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud)
 {
-    pcl::PointXYZ cnt(coefficients.values[0], coefficients.values[1], coefficients.values[2], cnt_direc(coefficients.values[3], coefficients.values[4], coefficients.values[5]);
-    std::array<float, 2> point_ext(getPointCloudExtremes(cloud, p_axis, axis));
+    pcl::PointXYZ cnt(coefficients.values[0], coefficients.values[1], coefficients.values[2]);
+    pcl::PointXYZ cnt_direc(coefficients.values[3], coefficients.values[4], coefficients.values[5]);
+    std::array<float, 2> point_ext(getPointCloudExtremes(cloud, cnt, cnt_direc));
 
     //Calculate height based on extremes of cylinder
     float cylinder_height = point_ext[0]-point_ext[1];
@@ -246,8 +247,8 @@ float RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     seg_box.setMethodType(pcl::SAC_RANSAC);
     seg_box.setModelType(pcl::SACMODEL_PLANE);
     seg_box.setNormalDistanceWeight(0.01);
-    seg_box.setMaxIterations(10000);
-    seg_box.setDistanceThreshold(0.001);
+    seg_box.setMaxIterations(1000);
+    seg_box.setDistanceThreshold(0.002);
     seg_box.setRadiusLimits(0.005, 0.150);
     inliers_array[0] = inliers_plane1;
     inliers_array[1] = inliers_plane2;

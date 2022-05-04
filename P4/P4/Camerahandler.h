@@ -35,7 +35,7 @@
 #include <pcl/common/centroid.h>
 
 #include <pcl/visualization/cloud_viewer.h>
-#include <pcl/visualization/pcl_visualizer.h>                                   //http://pointclouds.org/documentation/tutorials/pcl_visualizer.php#pcl-visualizer
+//#include <pcl/visualization/pcl_visualizer.h>                                   //http://pointclouds.org/documentation/tutorials/pcl_visualizer.php#pcl-visualizer
 
 
 #include <chrono>
@@ -84,7 +84,7 @@ private:
     std::map<royale::StreamId, MyFrameData> m_receivedData;
     std::mutex m_lockForReceivedData;
     bool isViewer;
-
+    int u;
     int vp; // Default viewport
     float bckgr_gray_level;  // Black:=0.02
     float txt_gray_lvl;
