@@ -97,33 +97,22 @@ tuple <float,float> RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr
     //cloudpoint ratio
     float cylinderRatio = (double)cylPoints->points.size() / (double)cloud->points.size() * 100;
     return { cylinderRatio,coefficients_cylinder->values[6] };
-    //return {cylinderRatio, coefficients_cylinder};
 }
 
 void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud)
 {
-    pcl::PointXYZ p_axis(coefficients.values[0], coefficients.values[1], coefficients.values[2]);
-    pcl::PointXYZ axis(coefficients.values[3], coefficients.values[4], coefficients.values[5]);
-    std::array<float, 2> arr(getPointCloudExtremes(cloud, p_axis, axis));
+    pcl::PointXYZ cnt(coefficients.values[0], coefficients.values[1], coefficients.values[2], cnt_direc(coefficients.values[3], coefficients.values[4], coefficients.values[5]);
+    std::array<float, 2> point_ext(getPointCloudExtremes(cloud, p_axis, axis));
 
-    pcl::PointXYZ p_low;
-    p_low.x = p_axis.x + arr[0] * axis.x / normPointT(axis);
-    p_low.y = p_axis.y + arr[0] * axis.y / normPointT(axis);
-    p_low.z = p_axis.z + arr[0] * axis.z / normPointT(axis);
-    pcl::PointXYZ n_direction;
-    n_direction.x = (-arr[0] + arr[1]) * axis.x / normPointT(axis);
-    n_direction.y = (-arr[0] + arr[1]) * axis.y / normPointT(axis);
-    n_direction.z = (-arr[0] + arr[1]) * axis.z / normPointT(axis);
+    //Calculate height based on extremes of cylinder
+    float cylinder_height = point_ext[0]-point_ext[1];
 
-    //height
-    long cylinder_height = pow((n_direction.x * n_direction.x + n_direction.y * n_direction.y + n_direction.z * n_direction.z), 0.5);
-
-    cyl.values.push_back(p_low.x);                          //point_on_axis.x : the X coordinate of a point located on the cylinder axis
-    cyl.values.push_back(p_low.y);                          //point_on_axis.y : the Y coordinate of a point located on the cylinder axis
-    cyl.values.push_back(p_low.z);                          //point_on_axis.z : the Z coordinate of a point located on the cylinder axis
-    cyl.values.push_back(n_direction.x);                    //axis_direction.x : the X coordinate of the cylinder's axis direction
-    cyl.values.push_back(n_direction.y);                    //axis_direction.y : the Y coordinate of the cylinder's axis direction
-    cyl.values.push_back(n_direction.z);                    //axis_direction.z : the Z coordinate of the cylinder's axis direction
+    cyl.values.push_back(cnt.x);                          //point_on_axis.x : the X coordinate of a point located on the cylinder axis
+    cyl.values.push_back(cnt.y);                          //point_on_axis.y : the Y coordinate of a point located on the cylinder axis
+    cyl.values.push_back(cnt.z);                          //point_on_axis.z : the Z coordinate of a point located on the cylinder axis
+    cyl.values.push_back(cnt_direc.x);                    //axis_direction.x : the X coordinate of the cylinder's axis direction
+    cyl.values.push_back(cnt_direc.y);                    //axis_direction.y : the Y coordinate of the cylinder's axis direction
+    cyl.values.push_back(cnt_direc.z);                    //axis_direction.z : the Z coordinate of the cylinder's axis direction
     cyl.values.push_back(coefficients.values[6]);           //radius : the cylinder's radius in meter
     cyl.values.push_back(cylinder_height);
 }

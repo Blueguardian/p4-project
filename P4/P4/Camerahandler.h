@@ -92,8 +92,11 @@ private:
     //Private Method prototypes
     pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence);
 
-    void viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud);
-    void viewerOneOff(pcl::visualization::CloudViewer& viewer);
+//    void viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud);
+//    void viewerOneOff(pcl::visualization::CloudViewer& viewer);
+
+pcl::visualization::PCLVisualizer::Ptr initViewer()
+
 };
 
 
