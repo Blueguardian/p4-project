@@ -21,15 +21,21 @@
 #include <pcl/filters/extract_indices.h>                                        //Extract Indices  Cylinder model segmentation
 #include <pcl/filters/passthrough.h>                                            //Cylinder model segmentation
 #include <pcl/features/normal_3d.h>                                             //Cylinder model segmentation
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/features/don.h>
 #include <pcl/sample_consensus/method_types.h>                                  //Planar segmentation,Extract Indices ,Cylinder model segmentation
 #include <pcl/sample_consensus/model_types.h>                                   //Planar segmentation  //Extract Indices  Cylinder model segmentation
 #include <pcl/segmentation/sac_segmentation.h>                                  //Planar segmentation  //Extract Indices      Cylinder model segmentation + others?
+#include <pcl/segmentation/extract_clusters.h>
 #include <pcl/visualization/pcl_visualizer.h>                                   //http://pointclouds.org/documentation/tutorials/pcl_visualizer.php#pcl-visualizer
 #include <pcl/console/time.h>
 #include <pcl/sample_consensus/ransac.h>
 #include <pcl/sample_consensus/sac_model_plane.h>
 #include <pcl/sample_consensus/sac_model_sphere.h>
 #include <pcl/visualization/cloud_viewer.h>
+#include <pcl/common/pca.h>
+
+#include <pcl/filters/conditional_removal.h>
 
 
 #include <chrono>
@@ -68,10 +74,10 @@ public:
     float normPointT(pcl::PointXYZ c);
 
     tuple <float,float> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    float check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     tuple <float, float> check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
 
-    std::vector <float> shape_box();
+    std::vector <float> shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     void shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
 };
 

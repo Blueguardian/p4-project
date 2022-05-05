@@ -88,7 +88,7 @@ Camerahandler::Camerahandler()
             buffer.push(cloudDownsampled);
             indx++;
         }
-        pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cloudDownsampled, 0, 255, 0);
+        
         if (cloudDownsampled->size() == 0)
         {
             return;
@@ -113,7 +113,7 @@ Camerahandler::Camerahandler()
         pcl::ExtractIndices<pcl::PointXYZ> extract;
         extract.setInputCloud(cloudDownsampled);
         extract.setIndices(inliers);
-        extract.setNegative(true);
+        extract.setNegative(true); //change back to true
         extract.filter(*cloudPlaneRemoved);
 
         // Create the KdTree object for the search method of the extraction
@@ -124,7 +124,7 @@ Camerahandler::Camerahandler()
         std::vector<pcl::PointIndices> cluster_indices;
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
         // specify euclidean cluster parameters
-        ec.setClusterTolerance(0.01); // 2cm
+        ec.setClusterTolerance(0.01); // 1cm
         ec.setMinClusterSize(100);
         ec.setMaxClusterSize(25000);
         ec.setSearchMethod(tree);
@@ -161,23 +161,15 @@ Camerahandler::Camerahandler()
             cloud_cluster->push_back((*cloudPlaneRemoved)[idx]);
         }
 
-        //if (!isViewer) {
-        //    viewerOneOff(viewer);
-        //    //viewer.showCloud(cloud_cluster, "OG");
-        //    viewer.showCloud(cloud_cluster, "cluster");
-        //    isViewer = true;
-        //}
-        //else {
-        //    //viewer.showCloud(cloud_cluster, "OG");
-        //    viewer.showCloud(cloud_cluster, "cluster");
-        //}
         RANSACHandler Ransacer(cloud);
         auto [Cylinderratio, Radiuscyl] = Ransacer.check_cyl(cloud_cluster);
         std::cout << "Cylinder Ratio: " << Cylinderratio << " Radius: " << Radiuscyl *100 << " cm" << endl;
         auto [Sphratio, Radiussph] = Ransacer.check_sph(cloud_cluster);
         std::cout << "Sphere Ratio: " << Sphratio << " Radius: " << Radiussph * 100 << " cm" << endl;
-        float Boxratio = Ransacer.check_box(cloud_cluster);
-        std::cout << "Box Ratio: " << Boxratio <<  endl;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr   boxinliers = Ransacer.check_box(cloud_cluster);
+
+        //std::cout << "Box Ratio: " << Boxratio <<  endl;
+
         /*
         std::vector<float> ratios;
         ratios.push_back(Cylinderratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
@@ -191,24 +183,13 @@ Camerahandler::Camerahandler()
             case 2: 
                std::vector<float> boxdim = Ransacer.shape_box();
         }*/
+        pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(boxinliers, 0, 255, 0);
+
         viewerz->addPointCloud(cloud_cluster, cloudDownsampled_color_h, "Cluster", vp);
         viewerz->spinOnce(1, true);
         return;
     }
 
-    //void Camerahandler::viewerOneOff(pcl::visualization::CloudViewer& viewer)
-    //{
-    //    pcl::PointXYZ o;
-    //    o.x = 1.0;
-    //    o.y = 0;
-    //    o.z = 0;
-    //    std::cout << "i only run once" << std::endl;
-    //}
-
-    //void Camerahandler::viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud)
-    //{
-    //viewer.showCloud(cloud, "cloud");
-    //}
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
     {
