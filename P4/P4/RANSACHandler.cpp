@@ -57,6 +57,15 @@ float RANSACHandler::dotProduct(pcl::PointXYZ a, pcl::PointXYZ b)
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
+pcl::PointXYZ RANSACHandler::crossProduct(pcl::PointXYZ a, pcl::PointXYZ b) {
+    pcl::PointXYZ result;
+    result.x = a.y * b.z - a.z * b.y;
+    result.y = a.z * b.x - a.x * b.z;
+    result.z = a.x * b.y - a.y * b.x;
+
+    return result;
+}
+
 float RANSACHandler::normPointT(pcl::PointXYZ c)
 {
     return std::sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
@@ -122,11 +131,13 @@ std::vector <float> RANSACHandler::shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr
 
     //for loop with runs the amount of planes
     std::vector <float> boxDim = {0,0,0};                  //boxDim[0] = width; BoxDim[1] = hight
-    Eigen::Matrix3f::Ptr eigen_vec;
+    std::vector<pcl::PointIndices:.Ptr, 3> model_indices = {inliers_plane1, inliers_plane2, inliers_plane3};
+    std::vector<std::vector<float, 2>> dimension_vector;
+    Eigen::Matrix3f eigen_vec;
+    Eigen::Vector3f eigen_val;
     float planes[3][4];
-    float box_length;
-    float box_width;
-    float box_height;
+    float box_length, box_width, box_height;
+    float plane_length, plane_width;
 
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 4; j++){
@@ -141,60 +152,74 @@ std::vector <float> RANSACHandler::shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr
         float p_cy = plane_centerPoint_y[i];
         float p_cz = plane_centerPoint_z[i];
 
+
+        Eigen::Vector4f centroid;
+        pcl::compute3DCentroid(*cloud, centroid);
+        pcl::PointXYZ cnt_coord(centroid[0], centroid[1], centroid[2])
+        /*
+        * The eigenvector corresponding to the largest eigenvalue should be the direction in of the longest dimension of the plane
+        * The eigenvector corresponding to the next-largest eigenvalue should be the direction of the second dimension of the plane
+         * The test should return the correct eigenvectors, but will have to be tested, otherwise another method has to be used
+         * This is sadly just a test due to not knowning what the output is nor what it is based upon
+        */
+
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPCAprojection (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PCA<pcl::PointXYZ> pca;
         pca.setInputCloud(cloud);
         pca.setIndices(inliers_array[i]);
         eigen_vec = pca.getEigenVectors();
-        std::cout << eigen_vec << std::endl;
+        eigen_val = pca.getEigenValues();
+        std::cout << "Eigen vectors: " << eigen_vec << "Eigen values: " << eigen_val << std::endl;
 
+        Eigen::Vector4f pca_cnt;
+        pcl::compute3DCentroid(*cloud, pca_cnt);
+        Eigen::Matrix3f cov_mat;
+        computeCovarianceMatrixNormalized(*cloud, pca_cnt, cov_mat);
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(cov_mat, Eigen::ComputeEigenvectors);
+        Eigen::Matrix3f eig_vec = eigen_solver.eigenvectors();
+        Eigen::Vector3f eig_val = eigen_solver.eigenvalues();
+        eig_vec.col(2) = eig_vec.col(0).cross(eig_vec.col(1));
+        std::cout << "Eigen vectors: " << eig_vec << " Eigen values: "  << eig_val << std::endl;
 
-        // Transform the original cloud to the origin where the principal components correspond to the axes.
-        Eigen::Matrix4f projectionTransform(Eigen::Matrix4f::Identity());
-        projectionTransform.block<3,3>(0,0) = eigenVectorsPCA.transpose();
-        projectionTransform.block<3,1>(0,3) = -1.f * (projectionTransform.block<3,3>(0,0) * pcaCentroid.head<3>());
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPointsProjected (new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::transformPointCloud(*cloudSegmented, *cloudPointsProjected, projectionTransform);
+        std::vector<float, 3> eig_val_conv = {eig_val[0, 0], eig_val[0, 1], eig_val[0, 2]};
+        int maxElementIndex = std::max_element(eig_val_conv.begin(), eig_val_conv(end)- eig_val_conv.begin());
+        pcl::PointXYZ eig_vec_direc(eig_vec[0, maxElementIndex], eig_vec[1, maxElementIndex], eig_vec[2, maxElementIndex])
 
+        //Saving the length and width of each plane:
+        std::array<float, 2> length = getPointCloudExtremes(model_indices[i], cnt_coord, eig_vec_direc);
+        plane_length = length[0]-length[1];
+        eig_val_conv.erase(maxElementIndex);
 
-        float p1_nx = planes[0][0] / (sqrt(pow(planes[0][0], 2) + pow(planes[0][1], 2) + pow(planes[0][2], 2)));
-        float p1_ny = planes[0][1] / (sqrt(pow(planes[0][0], 2) + pow(planes[0][1], 2) + pow(planes[0][2], 2)));
-        float p1_nz = planes[0][2] / (sqrt(pow(planes[0][0], 2) + pow(planes[0][1], 2) + pow(planes[0][2], 2)));
-        float p2_nx = planes[1][0] /
-            (sqrt(pow(planes[1][0], 2) + pow(planes[1][1], 2) + pow(planes[1][2], 2)));
-        float p2_ny = planes[1][1] /
-            (sqrt(pow(planes[1][0], 2) + pow(planes[1][1], 2) + pow(planes[1][2], 2)));
-        float p2_nz = planes[1][2] /
-            (sqrt(pow(planes[1][0], 2) + pow(planes[1][1], 2) + pow(planes[1][2], 2)));
-        float p3_nx = planes[2][0] / sqrt(pow(planes[2][0], 2) + pow(planes[2][1], 2) + pow(planes[2][2], 2));
-        float p3_ny = planes[2][1] / sqrt(pow(planes[2][0], 2) + pow(planes[2][1], 2) + pow(planes[2][2], 2));
-        float p3_nz = planes[2][2] / sqrt(pow(planes[2][0], 2) + pow(planes[2][1], 2) + pow(planes[2][2], 2));
+        maxElementIndex = std::max_element(eig_val_conv.begin(), eig_val_conv(end)- eig_val_conv.begin());
+        pcl::PointXYZ eig_vec_direc1(eig_vec[0, maxElementIndex], eig_vec[1, maxElementIndex], eig_vec[2, maxElementIndex])
+        std::array<float, 2> width = getPointCloudExtremes(model_indices[i], cnt_coord, eig_vec_direc1);
+        plane_width = width[0]-width[1];
 
-        float v1_x = p2_cx - p1_cx;
-        float v1_y = p2_cy - p1_cy;
-        float v1_z = p2_cz - p1_cz;
-        float v2_x = p2_cx - p3_cx;
-        float v2_y = p2_cy - p3_cy;
-        float v2_z = p2_cz - p3_cz;
-        float point_dist1 = v1_x * p1_nx + v1_y * p1_ny + v1_z * p1_nz;
-        float point_dist2 = v2_x * p3_nx + v2_y * p3_ny + v2_z * p3_nz;
-        float projected_point1_x = p2_cx - point_dist1 * p1_nx;
-        float projected_point1_y = p2_cy - point_dist1 * p1_ny;
-        float projected_point1_z = p2_cz - point_dist1 * p1_nz;
-        float projected_point2_x = p2_cx - point_dist2 * p3_nx;
-        float projected_point2_y = p2_cy - point_dist2 * p3_ny;
-        float projected_point2_z = p2_cz - point_dist2 * p3_nz;
+        std::vector<float> dim = {plane_length, plane_width};
+        dimension_vector.push_back(dim);
 
-        float length_a = sqrt(
-            abs(projected_point1_x - p1_cx) + abs(projected_point1_y - p1_cy) + abs(projected_point1_z - p1_cz));
-        float length_b = sqrt(
-            abs(projected_point1_x - p2_cx) + abs(projected_point1_y - p2_cy) + abs(projected_point1_z - p2_cz));
-        float length_c = sqrt(abs(projected_point2_x - p2_cx) + abs(projected_point2_y - p2_cy) + abs(projected_point2_z - p2_cz));
-
-            box_length = length_a * 1000 * 2; //Length
-        box_width = length_b * 1000 * 2; //Width
-        box_height = length_c * 1000 * 2; //Height
     }
+
+    /*
+     * This is gonna be wierd, but here we go
+     * Save the length values of each plane, compare the size and take the largest for "box length"
+     * Do the same for width and height after the element has been removed, NOTE: lengths will always be the largest!
+     */
+
+    std::vector<float> lengths;
+    for(int i = 0; i < 3; i++){
+        lengths[i] = dimension_vector[i][0];
+    }
+
+    maxElementIndex = std::max_element(lengths.begin(), lengths(end)- lengths.begin());
+    box_length = lengths[maxElementIndex];
+    lengths.erase(maxElementIndex);
+    maxElementIndex = std::max_element(lengths.begin(), lengths(end)- lengths.begin());
+    box_width = lengths[maxElementIndex];
+    lengths.erase(maxElementIndex);
+    maxElementIndex = std::max_element(lengths.begin(), lengths(end)- lengths.begin());
+    box_height = lengths[maxElementIndex];
+
     //NaN error
     if (box_length != box_length) {
         box_length = 0;

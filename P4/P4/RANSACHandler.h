@@ -64,6 +64,7 @@ public:
     
     std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction);
     float dotProduct(pcl::PointXYZ a, pcl::PointXYZ b);
+    pcl::PointXYZ crossProduct(pcl::PointXYZ a, pcl::PointXYZ b);
     float normPointT(pcl::PointXYZ c);
 
     tuple <float,float> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
