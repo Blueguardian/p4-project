@@ -1,10 +1,11 @@
 #include <Servo.h>
 
-//Servo wrist;
+Servo wrist;
 Servo fingers;
 
-//int wristpin = 9;
+int wristpin = 10;
 int fingerPin = 9;
+
 
 String input;
 int servoid;
@@ -20,12 +21,12 @@ void setup() {
   //wrist.attach(wristpin);
   fingers.attach(fingerPin);
   Serial.begin(9600);
-
+/*
   pinMode(2, OUTPUT);
   pinMode(3, OUTPUT);
   pinMode(4, OUTPUT);
   pinMode(5, OUTPUT);
-
+*/
 }
 
 void loop() {
@@ -37,6 +38,7 @@ void loop() {
   }
   
   servoid = InId(input);
+ 
 
   //Servo id's : 0 = analysis, 1 = wrist, 2 = close, 3 = open
 
@@ -80,7 +82,7 @@ void loop() {
 
       newtimer = millis();
       timeresult = newtimer - oldtimer;
-      if(timeresult > 30){
+      if(timeresult > 50){
        fingers.write(90); 
       }
   

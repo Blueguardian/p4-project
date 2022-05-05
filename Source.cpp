@@ -10,10 +10,10 @@ using namespace std;
 //object type : 0 = box, 1 = cylinder, 2 = sphere
 //object size : 3 numbers each consiting of 3 numbers
 
-void ComWrite(string message) {
+void ComWrite(char message) {
 
     //vector<char> buffer[] = { message };
-    string buffer[1] = { message };
+    char buffer[1] = { message };
 
 
     DCB dcb = { 0 };
@@ -21,7 +21,7 @@ void ComWrite(string message) {
 
     HANDLE sHandler;
 
-    sHandler = CreateFile(L"COM5", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    sHandler = CreateFile(L"COM3", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
     dcb.DCBlength = sizeof(dcb);
 
@@ -52,7 +52,7 @@ void ComWrite(string message) {
 int main(int argc, char* argv[]) {
 
     //vector<char> result;
-    string result;
+    char result;
     
     int state = 1;
     // 1 = open and 0 = closed
@@ -69,14 +69,14 @@ int main(int argc, char* argv[]) {
 
             if (state == 0) {
                 cout << "Cannot analyse at this moment" << endl;
-                result = "1";
+                result = '1';
                 ComWrite(result);
 
             }
             else {
                 cout << "Surroundings have been analysed!" << endl;
 
-                result = "2";
+                result = '2';
 
                 ComWrite(result);
             }
@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
                 cout << "The gripper has closed" << endl;
                 state = 0;
 
-                result = "3";
+                result = '3';
 
                 ComWrite(result);
             //}
@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
                 cout << "The gripper has opened" << endl;
                 state = 1;
 
-                result = "4";
+                result = '4';
 
                 ComWrite(result);
             //}
