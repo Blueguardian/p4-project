@@ -15,16 +15,16 @@ using namespace std;
 
 void ComWrite(string message) {
 
-    char chmessage[1];
+    char chmessage[2];
 
-    for (int i = 0; i <= message.length(); i++) {
+    for (int i = 0; i < sizeof(chmessage); i++) {
         chmessage[i] = message[i];
     }
     
 
 
     //vector<char> buffer[] = { message };
-    char buffer[1] = { *chmessage };
+    const char buffer[2] = { *chmessage };
     
 
     DCB dcb = { 0 };
