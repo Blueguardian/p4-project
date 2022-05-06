@@ -2,6 +2,7 @@
 #include <iostream>
 #include <conio.h>
 #include <vector>
+#include <string>
 
 
 
@@ -16,16 +17,21 @@ using namespace std;
 //We can change buffer and message size when getting in more information 
 void ComWrite(string message) {
 
-    char chmessage[1];
+    char chmessage[4] = {'0', '0', '0', '0'};
 
-    for (int i = 0; i < sizeof(chmessage); i++) {
+    for (size_t i = 0; i < message.length(); i++) {
+        
         chmessage[i] = message[i];
+        
     }
     
-
+    cout << chmessage[0] << endl;
+    cout << chmessage[1] << endl;
+    cout << chmessage[2] << endl;
+    cout << chmessage[3] << endl;
 
     //vector<char> buffer[] = { message };
-    const char buffer[1] = { *chmessage };
+    const char buffer[4] = { chmessage[0], chmessage[1], chmessage[2], chmessage[3] };
     
 
     DCB dcb = { 0 };
@@ -65,6 +71,9 @@ int main(int argc, char* argv[]) {
 
     //vector<char> result;
     string result;
+
+    int position = 90;
+
     
     int state = 1;
     // 1 = open and 0 = closed
@@ -84,8 +93,19 @@ int main(int argc, char* argv[]) {
 
         // Control Protocol : ID - Angle
 
-        // Start analysis of surroundings
 
+        //Simulate camera rotation
+        if (ch == 'q') {
+            position = position + 1;
+            cout << position << endl;
+        }
+        if (ch == 'e') {
+            position = position - 1;
+            cout << position << endl;
+        }
+
+
+        // Start analysis of surroundings
         if (ch == 'a') {
 
             if (state == 0) {
@@ -97,7 +117,9 @@ int main(int argc, char* argv[]) {
             else {
                 cout << "Surroundings have been analysed!" << endl;
 
-                result = "2";
+                result = "2";                
+
+                result = result + to_string(position);
 
                 ComWrite(result);
             }

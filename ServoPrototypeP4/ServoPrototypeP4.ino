@@ -7,8 +7,8 @@ Servo fingers;
 int wristpin = 10;
 int fingerPin = 9;
 
-int inputinfo[2];
-
+int inputinfo[4];
+unsigned int wristpos = 90;
 
 
 unsigned long oldtimer;
@@ -18,7 +18,7 @@ int timeresult;
 int newinput;
 
 void setup() {
-  //wrist.attach(wristpin);
+  wrist.attach(wristpin);
   fingers.attach(fingerPin);
   Serial.begin(9600);
 /*
@@ -40,18 +40,16 @@ void loop() {
 
   switch(inputinfo[0]){
     case 49:
-      //Serial.print("1");
-      //digitalWrite(2, HIGH);
-      //delay(100);
-      //digitalWrite(2, LOW);
+      //Error message
       break;
 
     case 50:
-      //Serial.print("2");
-      //digitalWrite(3, HIGH);
-      //delay(100);
-      //digitalWrite(3, LOW);
-     // wrist.write(InPos(input));
+      //wristpos = inputinfo[1]*100 + inputinfo[2]*10 + inputinfo[3];
+      wrist.write(inputinfo[1]);
+      wristpos = 0;
+
+      
+      
       break;
 
     case 51:
@@ -76,7 +74,7 @@ void loop() {
     
   }
 
-  inputinfo[0] = 0;
+  inputinfo[0] = 49;
   
   newtimer = millis();
   timeresult = newtimer - oldtimer;
@@ -102,7 +100,7 @@ void loop() {
 } */
 void inputproc(){
   String info;
-  for(int i=0; i<=3; i++){
+  for(int i=0; i < 4; i++){
     info = Serial.read();
     inputinfo[i]=info.toInt();
   }
