@@ -32,8 +32,18 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr first_cloud(new pcl::PointCloud<pcl::PointXY
 std::vector <pcl::PointCloud<pcl::PointXYZ>::Ptr> plane_clouds{ first_cloud, second_cloud, third_cloud, fourth_cloud };
 pcl::SampleConsensusModelPlane<pcl::PointXYZ>::Ptr model(new pcl::SampleConsensusModelPlane<pcl::PointXYZ>(plane_clouds[0]));
 pcl::PointCloud<PointT>::Ptr inlierPoints(new pcl::PointCloud<PointT>);
-
 pcl::RandomSampleConsensus<pcl::PointXYZ> sac(model, 1);
+
+//DON segmentation
+pcl::PointIndices::Ptr cluster_indicies_ptr(new pcl::PointIndices);
+pcl::search::KdTree<pcl::PointNormal>::Ptr segtree(new pcl::search::KdTree<pcl::PointNormal>);
+pcl::PointCloud<pcl::PointNormal>::Ptr doncloud_filtered(new pcl::PointCloud<pcl::PointNormal>);
+
+double threshold = 0.1;
+pcl::ConditionOr<pcl::PointNormal>::Ptr range_cond(new pcl::ConditionOr<pcl::PointNormal>());
+pcl::PointCloud<pcl::PointNormal>::Ptr doncloud(new pcl::PointCloud<pcl::PointNormal>);
+pcl::PointCloud<pcl::PointNormal>::Ptr normals_large_scale(new pcl::PointCloud<pcl::PointNormal>);
+pcl::PointCloud<pcl::PointNormal>::Ptr normals_small_scale(new pcl::PointCloud<pcl::PointNormal>);
 
 //Sphere variables
 pcl::ModelCoefficients::Ptr coefficients_sphere(new pcl::ModelCoefficients);
@@ -304,19 +314,19 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr RANSACHandler::check_box(pcl::PointCloud<pcl
      */
     ne.setViewPoint(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
 
-    pcl::PointCloud<pcl::PointNormal>::Ptr normals_small_scale(new pcl::PointCloud<pcl::PointNormal>);
+    
 
     ne.setRadiusSearch(0.01); //small scale
     ne.compute(*normals_small_scale);
 
     // calculate normals with the large scale
-    pcl::PointCloud<pcl::PointNormal>::Ptr normals_large_scale(new pcl::PointCloud<pcl::PointNormal>);
+    
 
     ne.setRadiusSearch(0.1);
     ne.compute(*normals_large_scale);
 
     // Create output cloud for DoN results
-    pcl::PointCloud<pcl::PointNormal>::Ptr doncloud(new pcl::PointCloud<pcl::PointNormal>);
+    
     pcl::copyPointCloud(*cloud, *doncloud);
 
     pcl::DifferenceOfNormalsEstimation<pcl::PointXYZ, pcl::PointNormal, pcl::PointNormal> don;
@@ -325,23 +335,21 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr RANSACHandler::check_box(pcl::PointCloud<pcl
     don.setNormalScaleSmall(normals_small_scale);
     don.computeFeature(*doncloud);
 
-    // Build the condition for filtering
-    double threshold = 0.1;
-    pcl::ConditionOr<pcl::PointNormal>::Ptr range_cond( new pcl::ConditionOr<pcl::PointNormal>());
-    range_cond->addComparison(pcl::FieldComparison<pcl::PointNormal>::ConstPtr( new pcl::FieldComparison<pcl::PointNormal>("curvature", pcl::ComparisonOps::GT, threshold)));
-    
+    range_cond->addComparison(pcl::FieldComparison<pcl::PointNormal>::ConstPtr(new pcl::FieldComparison<pcl::PointNormal>("curvature", pcl::ComparisonOps::GT, threshold)));
+
+   
     // Build the filter
     pcl::ConditionalRemoval<pcl::PointNormal> condrem;
     condrem.setCondition(range_cond);
     condrem.setInputCloud(doncloud);
 
-    pcl::PointCloud<pcl::PointNormal>::Ptr doncloud_filtered(new pcl::PointCloud<pcl::PointNormal>);
+    
 
     // Apply filter
     condrem.filter(*doncloud_filtered);
     doncloud = doncloud_filtered;
 
-    pcl::search::KdTree<pcl::PointNormal>::Ptr segtree(new pcl::search::KdTree<pcl::PointNormal>);
+    
     segtree->setInputCloud(doncloud);
 
     std::vector<pcl::PointIndices> cluster_indices;
@@ -355,7 +363,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr RANSACHandler::check_box(pcl::PointCloud<pcl
     ec.extract(cluster_indices);
 
     seg_box.setOptimizeCoefficients(true);
-    seg_box.setMethodType(pcl::SAC_LMEDS);
+    seg_box.setMethodType(pcl::SAC_RANSAC);
     seg_box.setModelType(pcl::SACMODEL_PLANE);
     seg_box.setNormalDistanceWeight(0.01);
     seg_box.setMaxIterations(1000);
@@ -368,14 +376,13 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr RANSACHandler::check_box(pcl::PointCloud<pcl
     ratio_planes[1] = 0;
     ratio_planes[2] = 0;
 
-    std::vector<pcl::PointIndices::Ptr> cluster_indicies_ptr(new);
 
-    while (plane_clouds[i]->size() > nPoints * 0.1 && i < 3)
+    while (cluster_indices[i].indices.size() > nPoints * 0.1 && i < 3)
     {
-        
+        cluster_indicies_ptr->indices = cluster_indices[i].indices;
         pcl::ExtractIndices<pcl::PointXYZ> extract;
         extract.setInputCloud(cloud);
-        extract.setIndices(cluster_indices[i]);
+        extract.setIndices(cluster_indicies_ptr);
         extract.setNegative(true);
         extract.filter(*plane_clouds[i]);
 
