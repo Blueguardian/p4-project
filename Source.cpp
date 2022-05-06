@@ -13,9 +13,10 @@ using namespace std;
 //object type : 0 = box, 1 = cylinder, 2 = sphere
 //object size : 3 numbers each consiting of 3 numbers
 
+//We can change buffer and message size when getting in more information 
 void ComWrite(string message) {
 
-    char chmessage[2];
+    char chmessage[1];
 
     for (int i = 0; i < sizeof(chmessage); i++) {
         chmessage[i] = message[i];
@@ -24,7 +25,7 @@ void ComWrite(string message) {
 
 
     //vector<char> buffer[] = { message };
-    const char buffer[2] = { *chmessage };
+    const char buffer[1] = { *chmessage };
     
 
     DCB dcb = { 0 };

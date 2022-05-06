@@ -3,13 +3,13 @@
 Servo wrist;
 Servo fingers;
 
+
 int wristpin = 10;
 int fingerPin = 9;
 
+int inputinfo[2];
 
-String input;
-int servoid;
-int servopos = 0;
+
 
 unsigned long oldtimer;
 unsigned long newtimer;
@@ -30,20 +30,17 @@ void setup() {
 }
 
 void loop() {
-
-  input = "";
-
-  while(Serial.available()){
-    input = Serial.read();  
+  if(Serial.available() > 0){
+    inputproc();
   }
   
-  servoid = InId(input);
+  
  
 
   //Servo id's : 0 = analysis, 1 = wrist, 2 = close, 3 = open
 
 
-  switch(servoid){
+  switch(inputinfo[0]){
     case 49:
       //Serial.print("1");
       //digitalWrite(2, HIGH);
@@ -56,6 +53,7 @@ void loop() {
       //digitalWrite(3, HIGH);
       //delay(100);
       //digitalWrite(3, LOW);
+     // wrist.write(InPos(input));
       break;
 
     case 51:
@@ -90,12 +88,26 @@ void loop() {
 }
 
 
-int InId (String id){
-  String output = id.substring(0,2);
+//int InId (String id){
+  //String output = id.substring(0,2);
+  //return output.toInt();
+//}
+
+/*int InPos (String pos){
+  String input1 =  
+  String input2
+  String input3
+  //String output = pos.substring(2,8);
   return output.toInt();
+} */
+void inputproc(){
+  String info;
+  for(int i=0; i<=3; i++){
+    info = Serial.read();
+    inputinfo[i]=info.toInt();
+  }
 }
 
-int InPos (String pos){
-  String output = pos.substring(2,5);
-  return output.toInt();
-}
+
+
+  
