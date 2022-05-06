@@ -61,8 +61,8 @@ Camerahandler::Camerahandler()
         else if (cloud->size() > 0) {
             
             //XYZfilter(cloud);
-            float filt_leaf_size = 0.01;
-            std::array<float, 6> filter_lims = { -0.15, 0.15, -0.15, 0.15, 0, 3 }; // x-min, x-max, y-min, y-max, z-min, z-max
+            float filt_leaf_size = 0.005;
+            std::array<float, 6> filter_lims = { -0.15, 0.15, -0.15, 0.15, 0.1, 0.3 }; // x-min, x-max, y-min, y-max, z-min, z-max
             pcl::PassThrough<PointT> pass(true);
            
             pass.setInputCloud(cloud);
@@ -162,36 +162,53 @@ Camerahandler::Camerahandler()
         }
 
         RANSACHandler Ransacer(cloud);
-        auto [Cylinderratio, Radiuscyl] = Ransacer.check_cyl(cloud_cluster);
-        std::cout << "Cylinder Ratio: " << Cylinderratio << " Radius: " << Radiuscyl *100 << " cm" << endl;
-        auto [Sphratio, Radiussph] = Ransacer.check_sph(cloud_cluster);
-        std::cout << "Sphere Ratio: " << Sphratio << " Radius: " << Radiussph * 100 << " cm" << endl;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr   boxinliers = Ransacer.check_box(cloud_cluster);
+        auto [Cylratio, cylcoeffs,cylpoints] = Ransacer.check_cyl(cloud_cluster);
+        std::cout << "Cylinder Ratio: " << Cylratio << endl;
+        auto [Sphratio, sphcoeffs, sphpoints] = Ransacer.check_sph(cloud_cluster);
+        std::cout << "Sphere Ratio: " << Sphratio << endl;
+        auto [Boxratio, boxcoeffs, boxpoints] = Ransacer.check_box(cloud_cluster);
+        std::cout << "Box Ratio: " << Boxratio << endl;
 
-        //std::cout << "Box Ratio: " << Boxratio <<  endl;
+        viewerz->removeAllPointClouds();
+        viewerz->removeAllShapes();
 
-        /*
         std::vector<float> ratios;
-        ratios.push_back(Cylinderratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
+        ratios.push_back(Cylratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
         int shape = std::max_element(ratios.begin(), ratios.end()) - ratios.begin();
         switch (shape) {
 
             case 0:  //Cylinder 
+            { 
+                pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cylpoints, 255, 0, 0);
+                viewerz->addPointCloud(cylpoints, cloudDownsampled_color_h, "Inliers", vp); 
+                viewerz->addCylinder(cylcoeffs);
+                break;
+            }
 
-            case 1: 
+            case 1: // Sphere
+            {
+                pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(sphpoints, 255, 0, 0);
+                viewerz->addPointCloud(sphpoints, cloudDownsampled_color_h, "Inliers", vp); 
+                viewerz->addSphere(sphcoeffs);
+                break;
+            }
 
-            case 2: 
-               std::vector<float> boxdim = Ransacer.shape_box();
-        }*/
-        pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(boxinliers, 0, 255, 0);
-
-        viewerz->addPointCloud(cloud_cluster, cloudDownsampled_color_h, "Cluster", vp);
+            case 2: //Box 
+            {
+                pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(boxpoints, 255, 0, 0);
+                viewerz->addPointCloud(boxpoints, cloudDownsampled_color_h, "Inliers", vp); 
+                viewerz->addPlane(boxcoeffs);
+                break;
+            }
+        }
+        
+       
         viewerz->spinOnce(1, true);
         return;
     }
 
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
+pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
     {
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
 

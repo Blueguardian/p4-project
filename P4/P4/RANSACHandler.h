@@ -34,8 +34,9 @@
 #include <pcl/sample_consensus/sac_model_sphere.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/common/pca.h>
-#include <pcl/filters/conditional_removal.h>
+#include <pcl/surface/mls.h>
 
+#include <pcl/filters/conditional_removal.h>
 
 
 #include <chrono>
@@ -73,9 +74,9 @@ public:
     pcl::PointXYZ crossProduct(pcl::PointXYZ a, pcl::PointXYZ b);
     float normPointT(pcl::PointXYZ c);
 
-    tuple <float,float> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    tuple <float, float> check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
+    tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
 
     std::vector <float> shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     void shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);

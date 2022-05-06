@@ -17,9 +17,9 @@ pcl::PointIndices::Ptr inliers_plane1(new pcl::PointIndices), inliers_plane2(new
 pcl::ModelCoefficients::Ptr coefficients_box(new pcl::ModelCoefficients);
 pcl::PointCloud<PointT>::Ptr cloud_plane1(new pcl::PointCloud<PointT>()), cloud_plane2(new pcl::PointCloud<PointT>()), cloud_plane3(new pcl::PointCloud<PointT>());
 pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
-pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_box;
+pcl::SACSegmentation<pcl::PointXYZ> seg_box; //pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_box;
 pcl::ExtractIndices<PointT> extract_box;
-pcl::NormalEstimation<PointT, pcl::Normal> ne;
+pcl::NormalEstimation <PointT, pcl::Normal> ne;
 std::array<pcl::PointIndices::Ptr, 3> inliers_array;
 std::array<pcl::ModelCoefficients::Ptr, 3> plane_coe_array;
 std::array<pcl::PointCloud<pcl::PointXYZ>::Ptr, 3> plane_array;
@@ -32,22 +32,12 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr first_cloud(new pcl::PointCloud<pcl::PointXY
 std::vector <pcl::PointCloud<pcl::PointXYZ>::Ptr> plane_clouds{ first_cloud, second_cloud, third_cloud, fourth_cloud };
 pcl::SampleConsensusModelPlane<pcl::PointXYZ>::Ptr model(new pcl::SampleConsensusModelPlane<pcl::PointXYZ>(plane_clouds[0]));
 pcl::PointCloud<PointT>::Ptr inlierPoints(new pcl::PointCloud<PointT>);
+
 pcl::RandomSampleConsensus<pcl::PointXYZ> sac(model, 1);
-
-//DON segmentation
-pcl::PointIndices::Ptr cluster_indicies_ptr(new pcl::PointIndices);
-pcl::search::KdTree<pcl::PointXYZ>::Ptr segtree(new pcl::search::KdTree<pcl::PointXYZ>);
-pcl::PointCloud<pcl::PointNormal>::Ptr doncloud_filtered(new pcl::PointCloud<pcl::PointNormal>);
-
-double threshold = 0.1;
-pcl::ConditionOr<pcl::PointNormal>::Ptr range_cond(new pcl::ConditionOr<pcl::PointNormal>());
-pcl::PointCloud<pcl::PointNormal>::Ptr doncloud(new pcl::PointCloud<pcl::PointNormal>);
-pcl::PointCloud<pcl::PointNormal>::Ptr normals_large_scale(new pcl::PointCloud<pcl::PointNormal>);
-pcl::PointCloud<pcl::PointNormal>::Ptr normals_small_scale(new pcl::PointCloud<pcl::PointNormal>);
-pcl::PointCloud<pcl::PointXYZ>::Ptr normalsAsPoints(new pcl::PointCloud<pcl::PointXYZ>);
 
 //Sphere variables
 pcl::ModelCoefficients::Ptr coefficients_sphere(new pcl::ModelCoefficients);
+
 pcl::PointIndices::Ptr inliers_sphere(new pcl::PointIndices);
 pcl::PointCloud<PointT>::Ptr shpPoints(new pcl::PointCloud<PointT>);
 
@@ -241,9 +231,46 @@ std::vector <float> RANSACHandler::shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr
 
     }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 
-    pcl::NormalEstimation<PointT, pcl::Normal> ne_BOX;
+    pcl::NormalEstimation<PointT, pcl::Normal> ne;
+    pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
+    pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_cylinder;
+    pcl::ExtractIndices<PointT> extract_cylinder;
+    pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
+
+    ne.setSearchMethod(tree);
+    ne.setInputCloud(cloud);
+    ne.setKSearch(50);
+    ne.compute(*cloud_normals);
+
+    seg_cylinder.setOptimizeCoefficients(true);
+    seg_cylinder.setMethodType(pcl::SAC_RANSAC);
+    seg_cylinder.setModelType(pcl::SACMODEL_CYLINDER);
+    seg_cylinder.setNormalDistanceWeight(0.01);
+    seg_cylinder.setMaxIterations(500);
+    seg_cylinder.setDistanceThreshold(0.003);
+    seg_cylinder.setRadiusLimits(0.01, 0.120);
+    seg_cylinder.setInputCloud(cloud);
+    seg_cylinder.setInputNormals(cloud_normals);
+
+    //Obtain the inliers of cylinder
+    seg_cylinder.segment(*inliers_cylinder, *coefficients_cylinder);
+
+    // Save the cylinder inliers                                       
+    extract_cylinder.setIndices(inliers_cylinder);
+    extract_cylinder.setInputCloud(cloud);
+    extract_cylinder.setNegative(false);
+    extract_cylinder.filter(*cylPoints);
+
+    //cloudpoint ratio
+    float cylinderRatio = (double)cylPoints->points.size() / (double)cloud->points.size() * 100;
+    return { cylinderRatio, *coefficients_cylinder, cylPoints };
+    }
+
+tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+
+    pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne_BOX;
     plane_clouds[0] = cloud;
 
     int nPoints = cloud->points.size();
@@ -259,82 +286,14 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr RANSACHandler::check_box(pcl::PointCloud<pcl
     
     ne_BOX.setSearchMethod(tree);
     ne_BOX.setInputCloud(cloud);
-    ne_BOX.setKSearch(50);
+    ne_BOX.setKSearch(cloud->width/4);
     ne_BOX.compute(*cloud_normals[0]);
 
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr normtree(new pcl::search::KdTree<pcl::PointXYZ>(false));
-    tree->setInputCloud(cloud);
-
-    pcl::NormalEstimationOMP< pcl::PointXYZ, pcl::PointNormal> ne;
-    ne.setInputCloud(cloud);
-    ne.setSearchMethod(tree);
-
-    /*
-     * NOTE: setting viewpoint is very important, so that we can ensure
-     * normals are all pointed in the same direction!
-     */
-    ne.setViewPoint(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-
-    
-
-    ne.setRadiusSearch(0.01); //small scale
-    ne.compute(*normals_small_scale);
-
-    // calculate normals with the large scale
-    
-
-    ne.setRadiusSearch(0.1);
-    ne.compute(*normals_large_scale);
-
-    // Create output cloud for DoN results
-    
-    pcl::copyPointCloud(*cloud, *doncloud);
-
-    pcl::DifferenceOfNormalsEstimation<pcl::PointXYZ, pcl::PointNormal, pcl::PointNormal> don;
-    don.setInputCloud(cloud);
-    don.setNormalScaleLarge(normals_large_scale);
-    don.setNormalScaleSmall(normals_small_scale);
-    don.computeFeature(*doncloud);
-
-    range_cond->addComparison(pcl::FieldComparison<pcl::PointNormal>::ConstPtr(new pcl::FieldComparison<pcl::PointNormal>("curvature", pcl::ComparisonOps::GT, threshold)));
-   
-    // Build the filter
-    pcl::ConditionalRemoval<pcl::PointNormal> condrem;
-    condrem.setCondition(range_cond);
-    condrem.setInputCloud(doncloud);
-       
-
-    // Apply filter
-    condrem.filter(*doncloud_filtered);
-    doncloud = doncloud_filtered;
-    
-    
-    normalsAsPoints->width = doncloud->width;
-    normalsAsPoints->height = 1;
-    for (int i = 0; i <= doncloud->width-1; i++) {
-        pcl::PointXYZ point(doncloud->points[i].x, doncloud->points[i].y, doncloud->points[i].z);
-        normalsAsPoints->points.push_back(point);
-    }
-
-
-
-    segtree->setInputCloud(normalsAsPoints);
-    std::vector<pcl::PointIndices> cluster_indices;
-    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec1;
-    double segradius = 0.001;
-    ec1.setClusterTolerance(segradius);
-    ec1.setMinClusterSize(50);
-    ec1.setMaxClusterSize(1500);
-    ec1.setSearchMethod(segtree);
-    ec1.setInputCloud(normalsAsPoints);
-    ec1.extract(cluster_indices);
-
     seg_box.setOptimizeCoefficients(true);
-    seg_box.setMethodType(pcl::SAC_RANSAC);
+    seg_box.setMethodType(pcl::SAC_LMEDS);
     seg_box.setModelType(pcl::SACMODEL_PLANE);
-    seg_box.setNormalDistanceWeight(0.01);
     seg_box.setMaxIterations(1000);
-    seg_box.setDistanceThreshold(0.001);
+    seg_box.setDistanceThreshold(0.0005);
     
     inliers_array[0] = inliers_plane1;
     inliers_array[1] = inliers_plane2;
@@ -343,18 +302,10 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr RANSACHandler::check_box(pcl::PointCloud<pcl
     ratio_planes[1] = 0;
     ratio_planes[2] = 0;
 
-
-    while (cluster_indices[i].indices.size() > nPoints * 0.1 && i < 3)
+    while (plane_clouds[i]->size() > nPoints * 0.1 && i < 3)
     {
-        cluster_indicies_ptr->indices = cluster_indices[i].indices;
-        pcl::ExtractIndices<pcl::PointXYZ> extraction;
-        extraction.setInputCloud(cloud);
-        extraction.setIndices(cluster_indicies_ptr);
-        extraction.setNegative(true);
-        extraction.filter(*plane_clouds[i]);
-
         seg_box.setInputCloud(plane_clouds[i]);
-        seg_box.setInputNormals(cloud_normals[i]);
+        //seg_box.setInputNormals(cloud_normals[i]);
         seg_box.segment(*inliers_array[i], *plane_coe_array[i]);
 
         //Save plane inliers 
@@ -396,7 +347,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr RANSACHandler::check_box(pcl::PointCloud<pcl
     //cout << dotProduct(plane1Normal, plane2Normal) << endl;
     //cout << dotProduct(plane1Normal, plane3Normal) << endl;
     //cout << dotProduct(plane2Normal, plane3Normal) << endl;
-    
+    /*
     cout << "plane coeffs " << endl;
        
     cout << " Inliers: " << plane_array[0]->width << " OG cloud size " << plane_clouds[0]->size() << endl;
@@ -409,21 +360,19 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr RANSACHandler::check_box(pcl::PointCloud<pcl
     if (plane_coe_array[2]->values.size() > 0){
         cout << "plane 3 " << plane_coe_array[2]->values[0] << plane_coe_array[2]->values[1] << plane_coe_array[2]->values[2] << "\n";
     }
-
+    */
     float boxRatio = ((double)ratio_planes[0] + (double)ratio_planes[1] + (double)ratio_planes[2])*100;
-
-    plane_coe_array[0]->values.clear(); plane_coe_array[1]->values.clear(); plane_coe_array[2]->values.clear();
     
     *inlierPoints = *plane_array[0] + *plane_array[1] + *plane_array[2];
-
-    return inlierPoints;
+    
+    return { boxRatio, *plane_coe_array[0], inlierPoints };
 }
 
-tuple <float, float> RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
+tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
 
     pcl::NormalEstimation<PointT, pcl::Normal> ne;
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
-    pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_sph;
+    pcl::SACSegmentation<PointT> seg_sph;
     pcl::ExtractIndices<PointT> extract_sph;
     pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
 
@@ -435,16 +384,20 @@ tuple <float, float> RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Pt
     seg_sph.setOptimizeCoefficients(true);
     seg_sph.setMethodType(pcl::SAC_RANSAC);
     seg_sph.setModelType(pcl::SACMODEL_SPHERE);
-    seg_sph.setNormalDistanceWeight(0.01);
+    //seg_sph.setNormalDistanceWeight(0.01);
     seg_sph.setMaxIterations(500);
     seg_sph.setDistanceThreshold(0.0012);
     seg_sph.setRadiusLimits(0.005, 0.150);
     seg_sph.setInputCloud(cloud);
-    seg_sph.setInputNormals(cloud_normals);
+    //seg_sph.setInputNormals(cloud_normals);
 
     //Obtain the inliers of sphere
     seg_sph.segment(*inliers_sphere, *coefficients_sphere);
-
+    /*if (coefficients_sphere == nullptr)
+    {   
+        //coefficients_sphere = new pcl::ModelCoefficients();
+        return { *coefficients_sphere, coefficients_sphere->values[3]};
+    }*/
     // Save the sphere inliers                                       
     extract_sph.setIndices(inliers_sphere);
     extract_sph.setInputCloud(cloud);
@@ -452,44 +405,7 @@ tuple <float, float> RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Pt
     extract_sph.filter(*shpPoints);
 
     //cloudpoint ratio
+    
     float sphRatio = (double)shpPoints->points.size() / (double)cloud->points.size() * 100;
-    return { sphRatio, coefficients_sphere->values[3] };
-}
-
-tuple <float, float> RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-
-
-    pcl::NormalEstimation<PointT, pcl::Normal> ne;
-    pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
-    pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_cylinder;
-    pcl::ExtractIndices<PointT> extract_cylinder;
-    pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
-
-    ne.setSearchMethod(tree);
-    ne.setInputCloud(cloud);
-    ne.setKSearch(50);
-    ne.compute(*cloud_normals);
-
-    seg_cylinder.setOptimizeCoefficients(true);
-    seg_cylinder.setMethodType(pcl::SAC_RANSAC);
-    seg_cylinder.setModelType(pcl::SACMODEL_CYLINDER);
-    seg_cylinder.setNormalDistanceWeight(0.01);
-    seg_cylinder.setMaxIterations(500);
-    seg_cylinder.setDistanceThreshold(0.003);
-    seg_cylinder.setRadiusLimits(0.01, 0.120);
-    seg_cylinder.setInputCloud(cloud);
-    seg_cylinder.setInputNormals(cloud_normals);
-
-    //Obtain the inliers of cylinder
-    seg_cylinder.segment(*inliers_cylinder, *coefficients_cylinder);
-
-    // Save the cylinder inliers                                       
-    extract_cylinder.setIndices(inliers_cylinder);
-    extract_cylinder.setInputCloud(cloud);
-    extract_cylinder.setNegative(false);
-    extract_cylinder.filter(*cylPoints);
-
-    //cloudpoint ratio
-    float cylinderRatio = (double)cylPoints->points.size() / (double)cloud->points.size() * 100;
-    return { cylinderRatio,coefficients_cylinder->values[6] };
+    return { sphRatio, *coefficients_sphere, shpPoints };
 }
