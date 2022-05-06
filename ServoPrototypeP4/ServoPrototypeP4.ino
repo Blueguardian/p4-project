@@ -30,13 +30,11 @@ void setup() {
 }
 
 void loop() {
+  
   if(Serial.available() > 0){
     inputproc();
   }
   
-  
- 
-
   //Servo id's : 0 = analysis, 1 = wrist, 2 = close, 3 = open
 
 
@@ -78,11 +76,13 @@ void loop() {
     
   }
 
-      newtimer = millis();
-      timeresult = newtimer - oldtimer;
-      if(timeresult > 50){
-       fingers.write(90); 
-      }
+  inputinfo[0] = 0;
+  
+  newtimer = millis();
+  timeresult = newtimer - oldtimer;
+  if(timeresult > 30){
+    fingers.write(90); 
+  }
   
   
 }

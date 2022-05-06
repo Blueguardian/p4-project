@@ -33,7 +33,7 @@ void ComWrite(string message) {
 
     HANDLE sHandler;
 
-    sHandler = CreateFile(L"COM3", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    sHandler = CreateFile(L"COM5", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
     dcb.DCBlength = sizeof(dcb);
 
@@ -71,7 +71,16 @@ int main(int argc, char* argv[]) {
 
     while (1) {
 
-        char ch = _getch();
+
+        char ch;
+
+        if (GetAsyncKeyState(0x53)) {
+            ch = 's';
+        }
+        else if (GetAsyncKeyState(0x44)) {
+            ch = 'd';
+        }
+        else ch = _getch();
 
         // Control Protocol : ID - Angle
 
