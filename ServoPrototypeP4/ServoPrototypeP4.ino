@@ -8,7 +8,9 @@ int wristpin = 10;
 int fingerPin = 9;
 
 int inputinfo[4];
-unsigned int wristpos = 90;
+String info;
+unsigned int wristpos;
+int wristdiff;
 
 
 unsigned long oldtimer;
@@ -21,6 +23,8 @@ void setup() {
   wrist.attach(wristpin);
   fingers.attach(fingerPin);
   Serial.begin(9600);
+  wrist.write(90);
+  fingers.write(90);
 /*
   pinMode(2, OUTPUT);
   pinMode(3, OUTPUT);
@@ -31,28 +35,29 @@ void setup() {
 
 void loop() {
   
-  if(Serial.available() > 0){
+  //if(Serial.available() > 0){
     inputproc();
-  }
+  //}
   
   //Servo id's : 0 = analysis, 1 = wrist, 2 = close, 3 = open
 
 
   switch(inputinfo[0]){
-    case 49:
+    case 1:
       //Error message
       break;
 
-    case 50:
-      //wristpos = inputinfo[1]*100 + inputinfo[2]*10 + inputinfo[3];
-      wrist.write(inputinfo[1]);
-      wristpos = 0;
+    case 2:
+      wristpos = (inputinfo[1]*100) + (inputinfo[2]*10) + (inputinfo[3]);
+      //if(wristpos - wrist.read() > 10){
+        wrist.write(wristpos);
+      //}
 
       
       
       break;
 
-    case 51:
+    case 3:
       oldtimer = millis();
       fingers.write(0);
       //delay(50);
@@ -62,7 +67,7 @@ void loop() {
       //digitalWrite(4, LOW);
       break;
 
-    case 52:
+    case 4:
       oldtimer = millis();
       fingers.write(180);
       //delay(50);
@@ -74,14 +79,13 @@ void loop() {
     
   }
 
-  inputinfo[0] = 49;
+  inputinfo[0] = 0;
   
   newtimer = millis();
   timeresult = newtimer - oldtimer;
   if(timeresult > 30){
-    fingers.write(90); 
+    fingers.write(90);
   }
-  
   
 }
 
@@ -99,10 +103,9 @@ void loop() {
   return output.toInt();
 } */
 void inputproc(){
-  String info;
   for(int i=0; i < 4; i++){
     info = Serial.read();
-    inputinfo[i]=info.toInt();
+    inputinfo[i] = info.toInt() - 48;
   }
 }
 

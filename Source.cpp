@@ -96,11 +96,11 @@ int main(int argc, char* argv[]) {
 
         //Simulate camera rotation
         if (ch == 'q') {
-            position = position + 1;
+            position = position + 5;
             cout << position << endl;
         }
         if (ch == 'e') {
-            position = position - 1;
+            position = position - 5;
             cout << position << endl;
         }
 
@@ -119,7 +119,13 @@ int main(int argc, char* argv[]) {
 
                 result = "2";                
 
-                result = result + to_string(position);
+                if (position > 99) {
+                    result = result + to_string(position);
+                }
+                else {
+                    result = result + '0' + to_string(position);
+                }
+                
 
                 ComWrite(result);
             }
