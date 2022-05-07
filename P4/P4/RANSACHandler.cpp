@@ -12,7 +12,8 @@ pcl::PointCloud<PointT>::Ptr cylPoints(new pcl::PointCloud<PointT>);
 //pcl::PointIndices inliers_plane1(new pcl::PointIndices), inliers_plane2(new pcl::PointIndices), inliers_plane3(new pcl::PointIndices);
 
 //box variables
-pcl::ModelCoefficients::Ptr coefficients_planes1(new pcl::ModelCoefficients), coefficients_planes2(new pcl::ModelCoefficients), coefficients_planes3(new pcl::ModelCoefficients);
+pcl::ModelCoefficients coefficients_planes1 /*(new pcl::ModelCoefficients)*/, coefficients_planes2 /*(new pcl::ModelCoefficients)*/, coefficients_planes3/*(new pcl::ModelCoefficients)*/;
+
 pcl::PointIndices::Ptr inliers_plane1(new pcl::PointIndices), inliers_plane2(new pcl::PointIndices), inliers_plane3(new pcl::PointIndices);
 pcl::ModelCoefficients::Ptr coefficients_box(new pcl::ModelCoefficients);
 pcl::PointCloud<PointT>::Ptr cloud_plane1(new pcl::PointCloud<PointT>()), cloud_plane2(new pcl::PointCloud<PointT>()), cloud_plane3(new pcl::PointCloud<PointT>());
@@ -21,7 +22,7 @@ pcl::SACSegmentation<pcl::PointXYZ> seg_box; //pcl::SACSegmentationFromNormals<P
 pcl::ExtractIndices<PointT> extract_box;
 pcl::NormalEstimation <PointT, pcl::Normal> ne;
 std::vector <pcl::PointIndices::Ptr> inliers_vec{ inliers_plane1, inliers_plane2, inliers_plane3 };
-std::vector <pcl::ModelCoefficients::Ptr> plane_coe_vec{ coefficients_planes1, coefficients_planes2, coefficients_planes3 };
+std::vector <pcl::ModelCoefficients> plane_coe_vec{ coefficients_planes1, coefficients_planes2, coefficients_planes3 };
 std::vector <pcl::PointCloud<pcl::PointXYZ>::Ptr> plane_vec{ cloud_plane1, cloud_plane2, cloud_plane3 };
 std::vector <pcl::Indices> inlier_indicies;
 
@@ -34,6 +35,10 @@ pcl::SampleConsensusModelPlane<pcl::PointXYZ>::Ptr model(new pcl::SampleConsensu
 pcl::PointCloud<PointT>::Ptr inlierPoints(new pcl::PointCloud<PointT>);
 
 pcl::RandomSampleConsensus<pcl::PointXYZ> sac(model, 1);
+
+//shape Box variables
+pcl::PointCloud<PointT>::Ptr demeanedCloud(new pcl::PointCloud<PointT>);
+pcl::PointCloud<PointT>::Ptr TransformedCloud(new pcl::PointCloud<PointT>);
 
 //Sphere variables
 pcl::ModelCoefficients::Ptr coefficients_sphere(new pcl::ModelCoefficients);
@@ -103,75 +108,107 @@ void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoeff
     cyl.values.push_back(cylinder_height);
 }
 
-std::vector <float> RANSACHandler::shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+std::vector <float> RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec) {
 
     //for loop with runs the amount of planes
     std::vector <float> boxDim = {0,0,0};                  //boxDim[0] = width; BoxDim[1] = hight
     std::vector<pcl::PointIndices::Ptr> model_indices = {inliers_plane1, inliers_plane2, inliers_plane3};
-    std::vector<std::vector<float>> dimension_vector;
+    std::vector<std::vector<float>> dimension_vector = {{0,0},{0,0},{0,0}};
+    std::vector<float> lengths = { 0,0,0 };
+
     Eigen::Matrix3f eigen_vec;
     Eigen::Vector3f eigen_val;
     float planes[3][4];
     float box_length, box_width, box_height;
     float plane_length, plane_width;
-
+    /*
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 4; j++){
             planes[i][j] = coefficients_planes1->values[j];
         }
-    }
+    }*/
 
+    for(int i = 0; i < boxinliers_vec.size(); i++) {
 
-    for(int i = 0; i < 3; i++){
-
+        /*
         float p_cx = plane_centerPoint_x[i];
         float p_cy = plane_centerPoint_y[i];
         float p_cz = plane_centerPoint_z[i];
+        */
 
+        
 
         Eigen::Vector4f centroid;
-        pcl::compute3DCentroid(*cloud, centroid);
+        pcl::compute3DCentroid(*boxinliers_vec[i], centroid);
         pcl::PointXYZ cnt_coord(centroid[0], centroid[1], centroid[2]);
+        pcl::PointXYZ demeanedpoint;
+
+        for (int idx = 0; idx < boxinliers_vec[i]->points.size(); idx++) {
+            demeanedpoint.x = boxinliers_vec[i]->points[idx].x - cnt_coord.x;
+            demeanedpoint.y = boxinliers_vec[i]->points[idx].y - cnt_coord.y;
+            demeanedpoint.z = boxinliers_vec[i]->points[idx].z - cnt_coord.z;
+            demeanedCloud->push_back(demeanedpoint);
+        }
         /*
         * The eigenvector corresponding to the largest eigenvalue should be the direction in of the longest dimension of the plane
         * The eigenvector corresponding to the next-largest eigenvalue should be the direction of the second dimension of the plane
          * The test should return the correct eigenvectors, but will have to be tested, otherwise another method has to be used
          * This is sadly just a test due to not knowning what the output is nor what it is based upon
         */
-
+        /*
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPCAprojection (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PCA<pcl::PointXYZ> pca;
-        pca.setInputCloud(cloud);
+        pca.setInputCloud(demeanedCloud);
         pca.setIndices(inliers_vec[i]);
         eigen_vec = pca.getEigenVectors();
         eigen_val = pca.getEigenValues();
         std::cout << "Eigen vectors: " << eigen_vec << "Eigen values: " << eigen_val << std::endl;
-
+        */
         Eigen::Vector4f pca_cnt;
-        pcl::compute3DCentroid(*cloud, pca_cnt);
+        pcl::compute3DCentroid(*demeanedCloud, pca_cnt);
         Eigen::Matrix3f cov_mat;
-        computeCovarianceMatrixNormalized(*cloud, pca_cnt, cov_mat);
+        pcl::computeCovarianceMatrixNormalized(*demeanedCloud, pca_cnt, cov_mat);
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(cov_mat, Eigen::ComputeEigenvectors);
         Eigen::Matrix3f eig_vec = eigen_solver.eigenvectors();
         Eigen::Vector3f eig_val = eigen_solver.eigenvalues();
         eig_vec.col(2) = eig_vec.col(0).cross(eig_vec.col(1));
-        std::cout << "Eigen vectors: " << eig_vec << " Eigen values: "  << eig_val << std::endl;
+        //std::cout << "Eigen vectors: " << eig_vec << " Eigen values: " << eig_val << std::endl;
 
         std::vector<float> eig_val_conv = {eig_val[0, 0], eig_val[0, 1], eig_val[0, 2]};
         auto maxElementIndex = std::max_element(eig_val_conv.begin(), eig_val_conv.end()) - eig_val_conv.begin();
-        pcl::PointXYZ eig_vec_direc(eig_vec(0, maxElementIndex), eig_vec(1, maxElementIndex), eig_vec(2, maxElementIndex));
+        eig_val_conv.erase(eig_val_conv.begin() + maxElementIndex);
+        auto secondBiggestElementsIndex = std::max_element(eig_val_conv.begin(), eig_val_conv.end()) - eig_val_conv.begin();
 
+        pcl::PointXYZ PC1(eig_vec(0, maxElementIndex), eig_vec(1, maxElementIndex), eig_vec(2, maxElementIndex)); //principal component 1
+        pcl::PointXYZ PC2(eig_vec(0, secondBiggestElementsIndex), eig_vec(1, secondBiggestElementsIndex), eig_vec(2, secondBiggestElementsIndex)); //principal component 2
+
+        pcl::PointXYZ transformedPoint;
+        for (int idx = 0; idx < demeanedCloud->points.size(); idx++) {
+            transformedPoint.x = dotProduct(demeanedCloud->points[idx], PC1); //demeanedCloud->points[idx].x * PC1.x + demeanedCloud->points[idx].y * PC1.y + demeanedCloud->points[idx].z * PC1.z; //these should be done using dot product
+            transformedPoint.y = dotProduct(demeanedCloud->points[idx], PC2); //demeanedCloud->points[idx].x * PC2.x + demeanedCloud->points[idx].y * PC2.y + demeanedCloud->points[idx].z * PC2.z;
+            transformedPoint.z = 0; //The depth of the planes should be zero.
+            TransformedCloud->push_back(transformedPoint);
+        }
+        /*
         //Saving the length and width of each plane:
         pcl::PointCloud<pcl::PointXYZ>::Ptr Planecloud(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::ExtractIndices<pcl::PointXYZ> extracter;
         extracter.setIndices(model_indices[i]);
-        extracter.setInputCloud(cloud);
+        extracter.setInputCloud(boxinliers_vec[i]);
         extracter.setNegative(false);
         extracter.filter(*Planecloud);
+        */
 
-        std::array<float, 2> length = getPointCloudExtremes(*Planecloud, cnt_coord, eig_vec_direc);
-        plane_length = length[0]-length[1];
-        eig_val_conv.erase(eig_val_conv.begin() + maxElementIndex);
+        std::array<float, 2> planedim1 = getPointCloudExtremes(*TransformedCloud, cnt_coord, PC1); //max and min along PC1
+        std::array<float, 2> planedim2 = getPointCloudExtremes(*TransformedCloud, cnt_coord, PC2);
+
+        dimension_vector[i][0] = abs(planedim1[0]) + abs(planedim1[1]); //save x 
+        dimension_vector[i][1] = abs(planedim2[0]) + abs(planedim2[1]); //save y
+
+        cout << "Box dims: " << dimension_vector[i][0] << "  " << dimension_vector[i][1] << endl;
+        //plane_length = length[0]-length[1];
+        //eig_val_conv.erase(eig_val_conv.begin() + maxElementIndex);
+
         /*
         maxElementIndex = std::max_element(eig_val_conv.begin(), eig_val_conv.end()) - eig_val_conv.begin();
         pcl::PointXYZ eig_vec_direc1(eig_vec[0, maxElementIndex], *eig_vec[1][maxElementIndex], eig_vec[2, maxElementIndex]);
@@ -188,8 +225,8 @@ std::vector <float> RANSACHandler::shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr
      //* Save the length values of each plane, compare the size and take the largest for "box length"
      //* Do the same for width and height after the element has been removed, NOTE: lengths will always be the largest!
      
+    cout << "\n";
     
-    std::vector<float> lengths;
     for(int i = 0; i < 3; i++){
         lengths[i] = dimension_vector[i][0];
     }
@@ -268,7 +305,7 @@ tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSA
     return { cylinderRatio, *coefficients_cylinder, cylPoints };
     }
 
-tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+tuple <float, std::vector<pcl::ModelCoefficients>, std::vector <pcl::PointCloud<pcl::PointXYZ>::Ptr>> RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     
     plane_clouds[0] = cloud;
     
@@ -288,7 +325,7 @@ tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSA
     while (plane_clouds[i]->size() > nPoints * 0.1 && i < 3)
     {
         seg_box.setInputCloud(plane_clouds[i]);
-        seg_box.segment(*inliers_vec[i], *plane_coe_vec[i]);
+        seg_box.segment(*inliers_vec[i], plane_coe_vec[i]);
 
         //Save plane inliers 
         pcl::ExtractIndices<pcl::PointXYZ> extract_plane;
@@ -310,7 +347,7 @@ tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSA
     
     *inlierPoints = *plane_vec[0] +  *plane_vec[1] + *plane_vec[2];
     
-    return { boxRatio, *plane_coe_vec[1], inlierPoints };
+    return { boxRatio, plane_coe_vec, plane_vec };
 }
 
 tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {

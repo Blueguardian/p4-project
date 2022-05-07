@@ -75,10 +75,10 @@ public:
     float normPointT(pcl::PointXYZ c);
 
     tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    tuple <float, std::vector<pcl::ModelCoefficients>, std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr>> check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
 
-    std::vector <float> shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    std::vector <float> shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec);
     void shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
 
 };

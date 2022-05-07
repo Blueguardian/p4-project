@@ -163,11 +163,11 @@ Camerahandler::Camerahandler()
 
         RANSACHandler Ransacer(cloud);
         auto [Cylratio, cylcoeffs,cylpoints] = Ransacer.check_cyl(cloud_cluster);
-        std::cout << "Cylinder Ratio: " << Cylratio << endl;
+        //std::cout << "Cylinder Ratio: " << Cylratio << endl;
         auto [Sphratio, sphcoeffs, sphpoints] = Ransacer.check_sph(cloud_cluster);
-        std::cout << "Sphere Ratio: " << Sphratio << endl;
-        auto [Boxratio, boxcoeffs, boxpoints] = Ransacer.check_box(cloud_cluster);
-        std::cout << "Box Ratio: " << Boxratio << endl;
+        //std::cout << "Sphere Ratio: " << Sphratio << endl;
+        auto [Boxratio, boxcoeffs_vec, boxpoints_vec] = Ransacer.check_box(cloud_cluster);
+        //std::cout << "Box Ratio: " << Boxratio << endl;
 
         viewerz->removeAllPointClouds();
         viewerz->removeAllShapes();
@@ -200,9 +200,17 @@ Camerahandler::Camerahandler()
 
             case 2: //Box 
             {
-                pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(boxpoints, 255, 0, 0);
-                viewerz->addPointCloud(boxpoints, cloudDownsampled_color_h, "Inliers", vp); 
-                //viewerz->addPlane(boxcoeffs);
+                std::vector <float> dims = Ransacer.shape_box(boxpoints_vec);
+                //std::cout << dims[0] << " " << dims[1] << " " << dims[2] << endl;
+                pcl::visualization::PointCloudColorHandlerCustom<PointT> boxpoints1_color_h (boxpoints_vec[0], 255, 0, 0);
+                pcl::visualization::PointCloudColorHandlerCustom<PointT> boxpoints2_color_h (boxpoints_vec[1], 255, 0, 0);
+                pcl::visualization::PointCloudColorHandlerCustom<PointT> boxpoints3_color_h (boxpoints_vec[2], 255, 0, 0);
+                viewerz->addPointCloud(boxpoints_vec[0], boxpoints1_color_h, "Inliers1", vp);
+                viewerz->addPointCloud(boxpoints_vec[1], boxpoints2_color_h, "Inliers2", vp);
+                viewerz->addPointCloud(boxpoints_vec[2], boxpoints3_color_h, "Inliers3", vp);
+                viewerz->addPlane(boxcoeffs_vec[0], "plane 1");
+                viewerz->addPlane(boxcoeffs_vec[1], "plane 2");
+                viewerz->addPlane(boxcoeffs_vec[2], "plane 3");
                 break;
             }
         }
