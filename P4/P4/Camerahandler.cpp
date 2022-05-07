@@ -62,7 +62,7 @@ Camerahandler::Camerahandler()
             
             //XYZfilter(cloud);
             float filt_leaf_size = 0.005;
-            std::array<float, 6> filter_lims = { -0.15, 0.15, -0.15, 0.15, 0.1, 0.3 }; // x-min, x-max, y-min, y-max, z-min, z-max
+            std::array<float, 6> filter_lims = { -0.15, 0.15, -0.15, 0.15, 0.1, 0.6 }; // x-min, x-max, y-min, y-max, z-min, z-max
             pcl::PassThrough<PointT> pass(true);
            
             pass.setInputCloud(cloud);
@@ -171,17 +171,22 @@ Camerahandler::Camerahandler()
 
         viewerz->removeAllPointClouds();
         viewerz->removeAllShapes();
+        pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cluster_color_h(cloud_cluster, 0, 0, 255);
+        viewerz->addPointCloud(cloud_cluster, cloud_cluster_color_h, "Cluster", vp);
 
         std::vector<float> ratios;
         ratios.push_back(Cylratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
         int shape = std::max_element(ratios.begin(), ratios.end()) - ratios.begin();
+
+
+
         switch (shape) {
 
             case 0:  //Cylinder 
             { 
                 pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cylpoints, 255, 0, 0);
                 viewerz->addPointCloud(cylpoints, cloudDownsampled_color_h, "Inliers", vp); 
-                viewerz->addCylinder(cylcoeffs);
+                //viewerz->addCylinder(cylcoeffs);
                 break;
             }
 
@@ -189,7 +194,7 @@ Camerahandler::Camerahandler()
             {
                 pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(sphpoints, 255, 0, 0);
                 viewerz->addPointCloud(sphpoints, cloudDownsampled_color_h, "Inliers", vp); 
-                viewerz->addSphere(sphcoeffs);
+                //viewerz->addSphere(sphcoeffs);
                 break;
             }
 
@@ -197,12 +202,11 @@ Camerahandler::Camerahandler()
             {
                 pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(boxpoints, 255, 0, 0);
                 viewerz->addPointCloud(boxpoints, cloudDownsampled_color_h, "Inliers", vp); 
-                viewerz->addPlane(boxcoeffs);
+                //viewerz->addPlane(boxcoeffs);
                 break;
             }
         }
-        
-       
+
         viewerz->spinOnce(1, true);
         return;
     }

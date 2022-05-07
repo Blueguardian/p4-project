@@ -20,9 +20,9 @@ pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
 pcl::SACSegmentation<pcl::PointXYZ> seg_box; //pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_box;
 pcl::ExtractIndices<PointT> extract_box;
 pcl::NormalEstimation <PointT, pcl::Normal> ne;
-std::array<pcl::PointIndices::Ptr, 3> inliers_array;
-std::array<pcl::ModelCoefficients::Ptr, 3> plane_coe_array;
-std::array<pcl::PointCloud<pcl::PointXYZ>::Ptr, 3> plane_array;
+std::vector <pcl::PointIndices::Ptr> inliers_vec{ inliers_plane1, inliers_plane2, inliers_plane3 };
+std::vector <pcl::ModelCoefficients::Ptr> plane_coe_vec{ coefficients_planes1, coefficients_planes2, coefficients_planes3 };
+std::vector <pcl::PointCloud<pcl::PointXYZ>::Ptr> plane_vec{ cloud_plane1, cloud_plane2, cloud_plane3 };
 std::vector <pcl::Indices> inlier_indicies;
 
 
@@ -142,7 +142,7 @@ std::vector <float> RANSACHandler::shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPCAprojection (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PCA<pcl::PointXYZ> pca;
         pca.setInputCloud(cloud);
-        pca.setIndices(inliers_array[i]);
+        pca.setIndices(inliers_vec[i]);
         eigen_vec = pca.getEigenVectors();
         eigen_val = pca.getEigenValues();
         std::cout << "Eigen vectors: " << eigen_vec << "Eigen values: " << eigen_val << std::endl;
@@ -249,7 +249,7 @@ tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSA
     seg_cylinder.setModelType(pcl::SACMODEL_CYLINDER);
     seg_cylinder.setNormalDistanceWeight(0.01);
     seg_cylinder.setMaxIterations(500);
-    seg_cylinder.setDistanceThreshold(0.003);
+    seg_cylinder.setDistanceThreshold(0.005);
     seg_cylinder.setRadiusLimits(0.01, 0.120);
     seg_cylinder.setInputCloud(cloud);
     seg_cylinder.setInputNormals(cloud_normals);
@@ -269,103 +269,48 @@ tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSA
     }
 
 tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSACHandler::check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-
-    pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne_BOX;
-    plane_clouds[0] = cloud;
-
-    int nPoints = cloud->points.size();
-    int i = 0;
-    double ratio_planes[3];
-
-    plane_coe_array[0] = coefficients_planes1;
-    plane_coe_array[1] = coefficients_planes2;
-    plane_coe_array[2] = coefficients_planes3;
-    plane_array[0] = cloud_plane1;
-    plane_array[1] = cloud_plane2;
-    plane_array[2] = cloud_plane3;
     
-    ne_BOX.setSearchMethod(tree);
-    ne_BOX.setInputCloud(cloud);
-    ne_BOX.setKSearch(cloud->width/4);
-    ne_BOX.compute(*cloud_normals[0]);
-
+    plane_clouds[0] = cloud;
+    
     seg_box.setOptimizeCoefficients(true);
     seg_box.setMethodType(pcl::SAC_LMEDS);
     seg_box.setModelType(pcl::SACMODEL_PLANE);
     seg_box.setMaxIterations(1000);
-    seg_box.setDistanceThreshold(0.0005);
-    
-    inliers_array[0] = inliers_plane1;
-    inliers_array[1] = inliers_plane2;
-    inliers_array[2] = inliers_plane3;
+    seg_box.setDistanceThreshold(0.002);
+
+    double ratio_planes[3];
     ratio_planes[0] = 0;
     ratio_planes[1] = 0;
     ratio_planes[2] = 0;
 
+    int i = 0;
+        int nPoints = cloud->points.size();
     while (plane_clouds[i]->size() > nPoints * 0.1 && i < 3)
     {
         seg_box.setInputCloud(plane_clouds[i]);
-        //seg_box.setInputNormals(cloud_normals[i]);
-        seg_box.segment(*inliers_array[i], *plane_coe_array[i]);
+        seg_box.segment(*inliers_vec[i], *plane_coe_vec[i]);
 
         //Save plane inliers 
         pcl::ExtractIndices<pcl::PointXYZ> extract_plane;
         extract_plane.setInputCloud(plane_clouds[i]);
-        extract_plane.setIndices(inliers_array[i]);
+        extract_plane.setIndices(inliers_vec[i]);
         extract_plane.setNegative(false);
-        extract_plane.filter(*plane_array[i]);
+        extract_plane.filter(*plane_vec[i]);
         //save the remaining cloud points
         extract_plane.setNegative(true);
         extract_plane.filter(*plane_clouds[i+1]);
 
-
         //Ratio at which points are considered belonging to the plane
-        ratio_planes[i] = (double)plane_array[i]->points.size() / (double)nPoints;
-
-        //Compute the center point and store it in the plane_centerPoint arrays
-        Eigen::Vector4f centroid;
-        pcl::compute3DCentroid(*plane_clouds[i], centroid);
-        plane_centerPoint_x[i] = centroid[0];
-        plane_centerPoint_y[i] = centroid[1];
-        plane_centerPoint_z[i] = centroid[2];
-
-        // Remove the planar inliers from normals
-        pcl::ExtractIndices<pcl::Normal> extract_normals_box;
-        extract_normals_box.setInputCloud(cloud_normals[i]);
-        extract_normals_box.setIndices(inliers_array[i]);
-        extract_normals_box.setNegative(true);
-        extract_normals_box.filter(*cloud_normals[i+1]);
+        ratio_planes[i] = (double)plane_vec[i]->points.size() / (double)nPoints;
 
         i++;
     }
-    //pcl::PointXYZ cnt_coord(centroid[0], centroid[1], centroid[2]);
-    
-    //pcl::PointXYZ plane2Normal(plane_coe_array[1]->values[0], plane_coe_array[1]->values[1], plane_coe_array[1]->values[2]); 
-    //pcl::PointXYZ plane3Normal(plane_coe_array[2]->values[0], plane_coe_array[2]->values[1], plane_coe_array[2]->values[2]);
-    //pcl::PointXYZ plane1Normal(plane_coe_array[0]->values[0], plane_coe_array[0]->values[1], plane_coe_array[0]->values[2]);
-
-    //cout << dotProduct(plane1Normal, plane2Normal) << endl;
-    //cout << dotProduct(plane1Normal, plane3Normal) << endl;
-    //cout << dotProduct(plane2Normal, plane3Normal) << endl;
-    /*
-    cout << "plane coeffs " << endl;
-       
-    cout << " Inliers: " << plane_array[0]->width << " OG cloud size " << plane_clouds[0]->size() << endl;
-    cout << plane_coe_array[0]->values[0] << " " << plane_coe_array[0]->values[1] << " " << plane_coe_array[0]->values[2] << endl;
-
-    if(plane_coe_array[1]->values.size() > 0){
-        cout << "plane 2 " << plane_coe_array[1]->values[0] << plane_coe_array[1]->values[1] << plane_coe_array[1]->values[2] << endl;
-    }
-
-    if (plane_coe_array[2]->values.size() > 0){
-        cout << "plane 3 " << plane_coe_array[2]->values[0] << plane_coe_array[2]->values[1] << plane_coe_array[2]->values[2] << "\n";
-    }
-    */
+   
     float boxRatio = ((double)ratio_planes[0] + (double)ratio_planes[1] + (double)ratio_planes[2])*100;
     
-    *inlierPoints = *plane_array[0] + *plane_array[1] + *plane_array[2];
+    *inlierPoints = *plane_vec[0] +  *plane_vec[1] + *plane_vec[2];
     
-    return { boxRatio, *plane_coe_array[0], inlierPoints };
+    return { boxRatio, *plane_coe_vec[1], inlierPoints };
 }
 
 tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {

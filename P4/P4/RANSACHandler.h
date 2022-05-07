@@ -80,6 +80,7 @@ public:
 
     std::vector <float> shape_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     void shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
+
 };
 
 
