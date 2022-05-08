@@ -163,11 +163,11 @@ Camerahandler::Camerahandler()
 
         RANSACHandler Ransacer(cloud);
         auto [Cylratio, cylcoeffs,cylpoints] = Ransacer.check_cyl(cloud_cluster);
-        //std::cout << "Cylinder Ratio: " << Cylratio << endl;
+        std::cout << "Cylinder Ratio: " << Cylratio << endl;
         auto [Sphratio, sphcoeffs, sphpoints] = Ransacer.check_sph(cloud_cluster);
-        //std::cout << "Sphere Ratio: " << Sphratio << endl;
+        std::cout << "Sphere Ratio: " << Sphratio << endl;
         auto [Boxratio, boxcoeffs_vec, boxpoints_vec] = Ransacer.check_box(cloud_cluster);
-        //std::cout << "Box Ratio: " << Boxratio << endl;
+        std::cout << "Box Ratio: " << Boxratio << endl;
 
         viewerz->removeAllPointClouds();
         viewerz->removeAllShapes();
@@ -177,8 +177,6 @@ Camerahandler::Camerahandler()
         std::vector<float> ratios;
         ratios.push_back(Cylratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
         int shape = std::max_element(ratios.begin(), ratios.end()) - ratios.begin();
-
-
 
         switch (shape) {
 

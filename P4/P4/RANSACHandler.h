@@ -73,7 +73,8 @@ public:
     float dotProduct(pcl::PointXYZ a, pcl::PointXYZ b);
     pcl::PointXYZ crossProduct(pcl::PointXYZ a, pcl::PointXYZ b);
     float normPointT(pcl::PointXYZ c);
-
+    
+    bool Checkorthogonal(std::vector<pcl::ModelCoefficients>);
     tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     tuple <float, std::vector<pcl::ModelCoefficients>, std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr>> check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);

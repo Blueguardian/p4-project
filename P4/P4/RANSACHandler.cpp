@@ -75,7 +75,7 @@ float RANSACHandler::dotProduct(pcl::PointXYZ a, pcl::PointXYZ b)
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-pcl::PointXYZ RANSACHandler::crossProduct(pcl::PointXYZ a, pcl::PointXYZ b) {
+inline pcl::PointXYZ RANSACHandler::crossProduct(pcl::PointXYZ a, pcl::PointXYZ b) {
     pcl::PointXYZ result;
     result.x = a.y * b.z - a.z * b.y;
     result.y = a.z * b.x - a.x * b.z;
@@ -87,6 +87,33 @@ pcl::PointXYZ RANSACHandler::crossProduct(pcl::PointXYZ a, pcl::PointXYZ b) {
 float RANSACHandler::normPointT(pcl::PointXYZ c)
 {
     return std::sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
+}
+
+bool RANSACHandler::Checkorthogonal(std::vector<pcl::ModelCoefficients> coeefs) {
+    
+    bool isOrthogonal = false;
+    float threshold = 0.1;
+    std::vector<float> dotProducts = {0,0,0};
+
+    //float norm = normPointT(PointT(coeefs[0].values[0], coeefs[0].values[1], coeefs[0].values[2]));
+    
+    PointT normal1(coeefs[0].values[0], coeefs[0].values[1], coeefs[0].values[2]);
+
+    PointT normal2(coeefs[1].values[0], coeefs[1].values[1] , coeefs[1].values[2] );
+    dotProducts.push_back(dotProduct(normal1, normal2));
+
+    if (!coeefs[2].values[0] == 0) {
+    PointT normal3(coeefs[2].values[0], coeefs[2].values[1], coeefs[2].values[2]);
+    dotProducts.push_back(dotProduct(normal1, normal3));
+    dotProducts.push_back(dotProduct(normal2, normal3));
+    }
+    float biggestdot = *std::max_element(dotProducts.begin(), dotProducts.end());
+    //cout << " Dot " << biggestdot << endl;
+    if (biggestdot < threshold) {
+        isOrthogonal = true;
+    }
+      
+        return isOrthogonal;
 }
 
 void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud)
@@ -313,7 +340,7 @@ tuple <float, std::vector<pcl::ModelCoefficients>, std::vector <pcl::PointCloud<
     seg_box.setMethodType(pcl::SAC_LMEDS);
     seg_box.setModelType(pcl::SACMODEL_PLANE);
     seg_box.setMaxIterations(1000);
-    seg_box.setDistanceThreshold(0.002);
+    seg_box.setDistanceThreshold(0.005);
 
     double ratio_planes[3];
     ratio_planes[0] = 0;
@@ -342,9 +369,14 @@ tuple <float, std::vector<pcl::ModelCoefficients>, std::vector <pcl::PointCloud<
 
         i++;
     }
-   
-    float boxRatio = ((double)ratio_planes[0] + (double)ratio_planes[1] + (double)ratio_planes[2])*100;
-    
+
+    float boxRatio = ((double)ratio_planes[0] + (double)ratio_planes[1] + (double)ratio_planes[2]) * 100;
+
+    if (!Checkorthogonal(plane_coe_vec)) {
+        boxRatio = 0;
+    }
+        
+
     *inlierPoints = *plane_vec[0] +  *plane_vec[1] + *plane_vec[2];
     
     return { boxRatio, plane_coe_vec, plane_vec };
