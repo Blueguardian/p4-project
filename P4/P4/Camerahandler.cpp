@@ -36,7 +36,7 @@ Camerahandler::Camerahandler()
         bool isViewer = false;
     }
 
-void Camerahandler :: onNewData(const royale::DepthData* data)  {
+void Camerahandler::onNewData(const royale::DepthData* data)  {
         
         cloud = points2pcl(data, 100); 
         //std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
@@ -160,6 +160,7 @@ void Camerahandler :: onNewData(const royale::DepthData* data)  {
                     std::vector<float> ratios;
                     ratios.push_back(Cylratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
                     int shape = std::max_element(ratios.begin(), ratios.end()) - ratios.begin();
+                    float angleDeg = 0;
 
                     // Debugging, using pcl::visualizer
                     switch (shape) {
@@ -169,6 +170,10 @@ void Camerahandler :: onNewData(const royale::DepthData* data)  {
                         pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cylpoints, 255, 0, 0);
                         viewerz->addPointCloud(cylpoints, cloudDownsampled_color_h, "Inliers", vp);
                         //viewerz->addCylinder(cylcoeffs);
+                        PointT cylvec = PointT(cylcoeffs.values[3], cylcoeffs.values[4], cylcoeffs.values[5]);
+                        PointT normVecPlan = PointT(coefficients->values[0], coefficients->values[1], coefficients->values[2]);
+                        angleDeg = acos(Ransacer.dotProduct(cylvec, normVecPlan) / (Ransacer.normPointT(cylvec)*Ransacer.normPointT(normVecPlan)))*180/3.14;
+                        cout << "angle: " << angleDeg << endl;
                         break;
                         }
 
@@ -177,6 +182,7 @@ void Camerahandler :: onNewData(const royale::DepthData* data)  {
                         pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(sphpoints, 255, 0, 0);
                         viewerz->addPointCloud(sphpoints, cloudDownsampled_color_h, "Inliers", vp);
                         //viewerz->addSphere(sphcoeffs);
+                        angleDeg = 45;
                         break;
                         }
 
