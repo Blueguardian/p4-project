@@ -52,6 +52,12 @@ RANSACHandler::RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud) {
     Ptcloud = cloud;   
 }
 
+
+PointT operator* (const PointT Point1, const float multiplier) {
+    return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
+}
+
+
 std::array<float, 2> RANSACHandler::getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction)
 {
     std::array<float, 2> arr = { 1000.0, -1000.0 };
@@ -89,20 +95,23 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
     return std::sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
 }
 
-bool RANSACHandler::Checkorthogonal(std::vector<pcl::ModelCoefficients> coeefs) {
-    
+bool RANSACHandler::Checkorthogonal(std::vector<pcl::ModelCoefficients> coeefs, int i) {
+    cout << "coeffs size: " << coeefs.size() << endl;
     bool isOrthogonal = false;
     float threshold = 0.1;
     std::vector<float> dotProducts = {0,0,0};
 
-    //float norm = normPointT(PointT(coeefs[0].values[0], coeefs[0].values[1], coeefs[0].values[2]));
-    
+    if (i < 3) {
+        isOrthogonal = true;
+    return isOrthogonal;
+    }
+
     PointT normal1(coeefs[0].values[0], coeefs[0].values[1], coeefs[0].values[2]);
 
     PointT normal2(coeefs[1].values[0], coeefs[1].values[1] , coeefs[1].values[2] );
     dotProducts.push_back(dotProduct(normal1, normal2));
 
-    if (!coeefs[2].values[0] == 0) {
+    if (i == 3) {
     PointT normal3(coeefs[2].values[0], coeefs[2].values[1], coeefs[2].values[2]);
     dotProducts.push_back(dotProduct(normal1, normal3));
     dotProducts.push_back(dotProduct(normal2, normal3));
@@ -111,8 +120,7 @@ bool RANSACHandler::Checkorthogonal(std::vector<pcl::ModelCoefficients> coeefs) 
     //cout << " Dot " << biggestdot << endl;
     if (biggestdot < threshold) {
         isOrthogonal = true;
-    }
-      
+    }     
         return isOrthogonal;
 }
 
@@ -135,39 +143,32 @@ void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoeff
     cyl.values.push_back(cylinder_height);
 }
 
-std::vector <float> RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec) {
-
+tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>>  RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec) {
+//std::vector <float>  RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec) {
     //for loop with runs the amount of planes
+    
     std::vector <float> boxDim = {0,0,0};                  //boxDim[0] = width; BoxDim[1] = hight
-    std::vector<pcl::PointIndices::Ptr> model_indices = {inliers_plane1, inliers_plane2, inliers_plane3};
-    std::vector<std::vector<float>> dimension_vector = {{0,0},{0,0},{0,0}};
-    std::vector<float> lengths = { 0,0,0 };
-
+    std::vector <pcl::PointIndices::Ptr> model_indices = {inliers_plane1, inliers_plane2, inliers_plane3};
+    std::vector <std::vector<float>> dimension_vector = {{0,0},{0,0},{0,0}};
+    std::vector <float> lengths = { 0,0,0 };
+    std::vector <PointT> eigVec = { pcl::PointXYZ(0,0,0), pcl::PointXYZ(0,0,0) ,pcl::PointXYZ(0,0,0) };
+    std::vector <std::vector< PointT>> eigVectors;
+    std::vector <PointT> centroids;
     Eigen::Matrix3f eigen_vec;
     Eigen::Vector3f eigen_val;
     float planes[3][4];
     float box_length, box_width, box_height;
     float plane_length, plane_width;
-    /*
-    for(int i = 0; i < 3; i++){
-        for(int j = 0; j < 4; j++){
-            planes[i][j] = coefficients_planes1->values[j];
-        }
-    }*/
 
     for(int i = 0; i < boxinliers_vec.size(); i++) {
 
-        /*
-        float p_cx = plane_centerPoint_x[i];
-        float p_cy = plane_centerPoint_y[i];
-        float p_cz = plane_centerPoint_z[i];
-        */
-
-        
+        demeanedCloud->clear();
+        TransformedCloud->clear();
 
         Eigen::Vector4f centroid;
         pcl::compute3DCentroid(*boxinliers_vec[i], centroid);
         pcl::PointXYZ cnt_coord(centroid[0], centroid[1], centroid[2]);
+        centroids.push_back(cnt_coord);
         pcl::PointXYZ demeanedpoint;
 
         for (int idx = 0; idx < boxinliers_vec[i]->points.size(); idx++) {
@@ -176,21 +177,7 @@ std::vector <float> RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::Po
             demeanedpoint.z = boxinliers_vec[i]->points[idx].z - cnt_coord.z;
             demeanedCloud->push_back(demeanedpoint);
         }
-        /*
-        * The eigenvector corresponding to the largest eigenvalue should be the direction in of the longest dimension of the plane
-        * The eigenvector corresponding to the next-largest eigenvalue should be the direction of the second dimension of the plane
-         * The test should return the correct eigenvectors, but will have to be tested, otherwise another method has to be used
-         * This is sadly just a test due to not knowning what the output is nor what it is based upon
-        */
-        /*
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPCAprojection (new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::PCA<pcl::PointXYZ> pca;
-        pca.setInputCloud(demeanedCloud);
-        pca.setIndices(inliers_vec[i]);
-        eigen_vec = pca.getEigenVectors();
-        eigen_val = pca.getEigenValues();
-        std::cout << "Eigen vectors: " << eigen_vec << "Eigen values: " << eigen_val << std::endl;
-        */
+        
         Eigen::Vector4f pca_cnt;
         pcl::compute3DCentroid(*demeanedCloud, pca_cnt);
         Eigen::Matrix3f cov_mat;
@@ -216,42 +203,22 @@ std::vector <float> RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::Po
             transformedPoint.z = 0; //The depth of the planes should be zero.
             TransformedCloud->push_back(transformedPoint);
         }
-        /*
-        //Saving the length and width of each plane:
-        pcl::PointCloud<pcl::PointXYZ>::Ptr Planecloud(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::ExtractIndices<pcl::PointXYZ> extracter;
-        extracter.setIndices(model_indices[i]);
-        extracter.setInputCloud(boxinliers_vec[i]);
-        extracter.setNegative(false);
-        extracter.filter(*Planecloud);
-        */
-
+        
         std::array<float, 2> planedim1 = getPointCloudExtremes(*TransformedCloud, cnt_coord, PC1); //max and min along PC1
         std::array<float, 2> planedim2 = getPointCloudExtremes(*TransformedCloud, cnt_coord, PC2);
 
-        dimension_vector[i][0] = abs(planedim1[0]) + abs(planedim1[1]); //save x 
-        dimension_vector[i][1] = abs(planedim2[0]) + abs(planedim2[1]); //save y
+        
+        dimension_vector[i][0] = abs(planedim1[0] - planedim1[1]); //save x 
+        dimension_vector[i][1] = abs(planedim2[0] - planedim2[1]); //save y
+
+        eigVec[0] = (PC1 * (dimension_vector[i][0]/2)); //scale the eigenvectors
+        eigVec[1] = (PC2 * (dimension_vector[i][1]/2));
+        eigVectors.push_back(eigVec);
 
         cout << "Box dims: " << dimension_vector[i][0] << "  " << dimension_vector[i][1] << endl;
-        //plane_length = length[0]-length[1];
-        //eig_val_conv.erase(eig_val_conv.begin() + maxElementIndex);
 
-        /*
-        maxElementIndex = std::max_element(eig_val_conv.begin(), eig_val_conv.end()) - eig_val_conv.begin();
-        pcl::PointXYZ eig_vec_direc1(eig_vec[0, maxElementIndex], *eig_vec[1][maxElementIndex], eig_vec[2, maxElementIndex]);
-        std::array<float, 2> width = getPointCloudExtremes(*Planecloud, cnt_coord, eig_vec_direc1);
-        plane_width = width[0]- width[1];
-
-        std::vector<float> dim = {plane_length, plane_width};
-        dimension_vector.push_back(dim);
-        */
     }
 
-    
-     //* This is gonna be wierd, but here we go
-     //* Save the length values of each plane, compare the size and take the largest for "box length"
-     //* Do the same for width and height after the element has been removed, NOTE: lengths will always be the largest!
-     
     cout << "\n";
     
     for(int i = 0; i < 3; i++){
@@ -291,9 +258,8 @@ std::vector <float> RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::Po
         boxDim[2] = box_height;
     }
 
-    return boxDim;
-
-    }
+    return { boxDim, eigVectors,centroids};
+   }
 
 tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 
@@ -369,13 +335,12 @@ tuple <float, std::vector<pcl::ModelCoefficients>, std::vector <pcl::PointCloud<
 
         i++;
     }
-
+    
     float boxRatio = ((double)ratio_planes[0] + (double)ratio_planes[1] + (double)ratio_planes[2]) * 100;
-
-    if (!Checkorthogonal(plane_coe_vec)) {
+   
+    if (!Checkorthogonal(plane_coe_vec, i)) {
         boxRatio = 0;
     }
-        
 
     *inlierPoints = *plane_vec[0] +  *plane_vec[1] + *plane_vec[2];
     

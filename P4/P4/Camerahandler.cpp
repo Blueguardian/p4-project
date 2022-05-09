@@ -22,6 +22,9 @@ bool isViewer = false;
 int vp = 0;
 
 
+PointT operator+ (const PointT Point1, const PointT Point2) {
+    return PointT(Point1.x + Point2.x, Point1.y + Point2.y, Point1.z + Point2.z);
+}
 
 Camerahandler::Camerahandler()
     {
@@ -53,7 +56,7 @@ Camerahandler::Camerahandler()
         }
         viewerz->removeAllShapes();
         viewerz->removeAllPointClouds();
-        if (cloud->size() == 0)
+        if (cloud->empty())
         {
             return;
         }
@@ -88,7 +91,8 @@ Camerahandler::Camerahandler()
             buffer.push(cloudDownsampled);
             indx++;
         }
-        
+
+
         if (cloudDownsampled->size() == 0)
         {
             return;
@@ -119,7 +123,6 @@ Camerahandler::Camerahandler()
         // Create the KdTree object for the search method of the extraction
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
         tree->setInputCloud(cloudPlaneRemoved);
-
         // create the extraction object for the clusters
         std::vector<pcl::PointIndices> cluster_indices;
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
@@ -156,6 +159,7 @@ Camerahandler::Camerahandler()
             }
 
         }
+
         cloud_cluster->clear();
         for (const auto& idx : ClosestIndex->indices) {
             cloud_cluster->push_back((*cloudPlaneRemoved)[idx]);
@@ -198,7 +202,7 @@ Camerahandler::Camerahandler()
 
             case 2: //Box 
             {
-                std::vector <float> dims = Ransacer.shape_box(boxpoints_vec);
+               auto [dims, eigvecs, centroids] = Ransacer.shape_box(boxpoints_vec);
                 //std::cout << dims[0] << " " << dims[1] << " " << dims[2] << endl;
                 pcl::visualization::PointCloudColorHandlerCustom<PointT> boxpoints1_color_h (boxpoints_vec[0], 255, 0, 0);
                 pcl::visualization::PointCloudColorHandlerCustom<PointT> boxpoints2_color_h (boxpoints_vec[1], 255, 0, 0);
@@ -206,9 +210,16 @@ Camerahandler::Camerahandler()
                 viewerz->addPointCloud(boxpoints_vec[0], boxpoints1_color_h, "Inliers1", vp);
                 viewerz->addPointCloud(boxpoints_vec[1], boxpoints2_color_h, "Inliers2", vp);
                 viewerz->addPointCloud(boxpoints_vec[2], boxpoints3_color_h, "Inliers3", vp);
-                viewerz->addPlane(boxcoeffs_vec[0], "plane 1");
-                viewerz->addPlane(boxcoeffs_vec[1], "plane 2");
-                viewerz->addPlane(boxcoeffs_vec[2], "plane 3");
+                
+                viewerz->addArrow(centroids[0], centroids[0] + eigvecs[0][0], 255, 255, 255, false, "p1v1");
+                viewerz->addArrow(centroids[0], centroids[0] + eigvecs[0][1], 255, 255, 255, false, "p1v2");
+                viewerz->addArrow(centroids[1], centroids[1] + eigvecs[1][0], 255, 255, 255, false, "p2v1");
+                viewerz->addArrow(centroids[1], centroids[1] + eigvecs[1][1], 255, 255, 255, false, "p2v2");
+                viewerz->addArrow(centroids[2], centroids[2] + eigvecs[2][0], 255, 255, 255, false, "p3v1");
+                viewerz->addArrow(centroids[2], centroids[2] + eigvecs[2][1], 255, 255, 255, false, "p3v2");
+                //viewerz->addPlane(boxcoeffs_vec[0], "plane 1");
+                //viewerz->addPlane(boxcoeffs_vec[1], "plane 2");
+                //viewerz->addPlane(boxcoeffs_vec[2], "plane 3");
                 break;
             }
         }
@@ -230,7 +241,6 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::Dept
         }
         return cloud;
     }
-
 
 pcl::visualization::PCLVisualizer::Ptr Camerahandler::initViewer()
 {

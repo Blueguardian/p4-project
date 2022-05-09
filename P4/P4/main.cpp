@@ -47,9 +47,10 @@ int main(int argc, char* argv[])
     cameraDevice->registerDataListener(&camhandle); // register a data listener
     cameraDevice->startCapture(); 
 
+    
+
     while (! _kbhit()) // wait until a key is pressed
     {
-       
        
 
     }

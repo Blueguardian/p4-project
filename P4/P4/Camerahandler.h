@@ -55,6 +55,7 @@ using namespace royale;
 using namespace sample_utils;
 using namespace std;
 
+
 class Camerahandler : public royale::IDepthDataListener
 {
 public:
@@ -97,7 +98,9 @@ private:
 
     pcl::visualization::PCLVisualizer::Ptr initViewer();
 
+    
 };
+
 
 
 #endif //P4_PROJECT_CAMERAHANDLER_H
