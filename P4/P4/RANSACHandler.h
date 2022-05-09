@@ -53,20 +53,11 @@ typedef pcl::PointCloud<PointT> PointCloudT;
 class RANSACHandler {
     
 public:
-    pcl::PointCloud<PointT>::Ptr Ptcloud;
     std::array<float, 3> plane_centerPoint_x;
     std::array<float, 3> plane_centerPoint_y;
     std::array<float, 3> plane_centerPoint_z;
     float box_hight;
     float box_radius;
-    struct gr_object {
-        string obj;
-        string grasp;
-        float h;
-        float w;
-        float r;
-        float l;
-    };
     RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud);
     
     std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction);
@@ -81,7 +72,6 @@ public:
 
     tuple <std::vector <float>, std::vector<std::vector<PointT>>, std::vector<PointT>>  shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec);
     void shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
-
 };
 
 

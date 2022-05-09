@@ -18,7 +18,7 @@ pcl::PointIndices::Ptr inliers_plane1(new pcl::PointIndices), inliers_plane2(new
 pcl::ModelCoefficients::Ptr coefficients_box(new pcl::ModelCoefficients);
 pcl::PointCloud<PointT>::Ptr cloud_plane1(new pcl::PointCloud<PointT>()), cloud_plane2(new pcl::PointCloud<PointT>()), cloud_plane3(new pcl::PointCloud<PointT>());
 pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
-pcl::SACSegmentation<pcl::PointXYZ> seg_box; //pcl::SACSegmentationFromNormals<PointT, pcl::Normal> seg_box;
+pcl::SACSegmentation<pcl::PointXYZ> seg_box;
 pcl::ExtractIndices<PointT> extract_box;
 pcl::NormalEstimation <PointT, pcl::Normal> ne;
 std::vector <pcl::PointIndices::Ptr> inliers_vec{ inliers_plane1, inliers_plane2, inliers_plane3 };
@@ -48,15 +48,12 @@ pcl::PointCloud<PointT>::Ptr shpPoints(new pcl::PointCloud<PointT>);
 
 
 
-RANSACHandler::RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud) {
-    Ptcloud = cloud;   
+RANSACHandler::RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud) {  
 }
-
 
 PointT operator* (const PointT Point1, const float multiplier) {
     return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
 }
-
 
 std::array<float, 2> RANSACHandler::getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction)
 {
@@ -144,10 +141,9 @@ void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoeff
 }
 
 tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>>  RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec) {
-//std::vector <float>  RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec) {
     //for loop with runs the amount of planes
     
-    std::vector <float> boxDim = {0,0,0};                  //boxDim[0] = width; BoxDim[1] = hight
+    std::vector <float> boxDim = {0,0,0};                  //boxDim[0] = width; BoxDim[1] = height
     std::vector <pcl::PointIndices::Ptr> model_indices = {inliers_plane1, inliers_plane2, inliers_plane3};
     std::vector <std::vector<float>> dimension_vector = {{0,0},{0,0},{0,0}};
     std::vector <float> lengths = { 0,0,0 };
@@ -156,9 +152,7 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
     std::vector <PointT> centroids;
     Eigen::Matrix3f eigen_vec;
     Eigen::Vector3f eigen_val;
-    float planes[3][4];
     float box_length, box_width, box_height;
-    float plane_length, plane_width;
 
     for(int i = 0; i < boxinliers_vec.size(); i++) {
 
@@ -186,7 +180,6 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
         Eigen::Matrix3f eig_vec = eigen_solver.eigenvectors();
         Eigen::Vector3f eig_val = eigen_solver.eigenvalues();
         eig_vec.col(2) = eig_vec.col(0).cross(eig_vec.col(1));
-        //std::cout << "Eigen vectors: " << eig_vec << " Eigen values: " << eig_val << std::endl;
 
         std::vector<float> eig_val_conv = {eig_val[0, 0], eig_val[0, 1], eig_val[0, 2]};
         auto maxElementIndex = std::max_element(eig_val_conv.begin(), eig_val_conv.end()) - eig_val_conv.begin();
@@ -198,15 +191,14 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
 
         pcl::PointXYZ transformedPoint;
         for (int idx = 0; idx < demeanedCloud->points.size(); idx++) {
-            transformedPoint.x = dotProduct(demeanedCloud->points[idx], PC1); //demeanedCloud->points[idx].x * PC1.x + demeanedCloud->points[idx].y * PC1.y + demeanedCloud->points[idx].z * PC1.z; //these should be done using dot product
-            transformedPoint.y = dotProduct(demeanedCloud->points[idx], PC2); //demeanedCloud->points[idx].x * PC2.x + demeanedCloud->points[idx].y * PC2.y + demeanedCloud->points[idx].z * PC2.z;
+            transformedPoint.x = dotProduct(demeanedCloud->points[idx], PC1); // Transform the points be along the principal componets
+            transformedPoint.y = dotProduct(demeanedCloud->points[idx], PC2); 
             transformedPoint.z = 0; //The depth of the planes should be zero.
             TransformedCloud->push_back(transformedPoint);
         }
         
         std::array<float, 2> planedim1 = getPointCloudExtremes(*TransformedCloud, cnt_coord, PC1); //max and min along PC1
         std::array<float, 2> planedim2 = getPointCloudExtremes(*TransformedCloud, cnt_coord, PC2);
-
         
         dimension_vector[i][0] = abs(planedim1[0] - planedim1[1]); //save x 
         dimension_vector[i][1] = abs(planedim2[0] - planedim2[1]); //save y

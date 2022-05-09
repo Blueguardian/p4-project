@@ -29,23 +29,15 @@
 #include <pcl/console/time.h>
 #include <pcl/sample_consensus/ransac.h>
 #include <pcl/sample_consensus/sac_model_plane.h>
-#include <pcl/sample_consensus/sac_model_sphere.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/common/centroid.h>
-
-#include <pcl/visualization/cloud_viewer.h>
-//#include <pcl/visualization/pcl_visualizer.h>                                   //http://pointclouds.org/documentation/tutorials/pcl_visualizer.php#pcl-visualizer
-
 
 #include <chrono>
 #include <thread>
 #include <stack>
 #include <sample_utils/PlatformResources.hpp>
 #include <RANSACHandler.h>
-
-
-
 #pragma once
 
 typedef pcl::PointXYZ PointT;
@@ -54,7 +46,6 @@ typedef pcl::PointCloud<PointT> PointCloudT;
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
-
 
 class Camerahandler : public royale::IDepthDataListener
 {
@@ -92,10 +83,6 @@ private:
 
     //Private Method prototypes
     pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence);
-
-//    void viewerUpdate(pcl::visualization::CloudViewer& viewer, pcl::PointCloud<PointT>::Ptr& cloud);
-//    void viewerOneOff(pcl::visualization::CloudViewer& viewer);
-
     pcl::visualization::PCLVisualizer::Ptr initViewer();
 
     
