@@ -161,6 +161,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     ratios.push_back(Cylratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
                     int shape = std::max_element(ratios.begin(), ratios.end()) - ratios.begin();
                     float angleDeg = 0;
+                    float handAperture = 0;
 
                     // Debugging, using pcl::visualizer
                     switch (shape) {
@@ -173,6 +174,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         PointT cylvec = PointT(cylcoeffs.values[3], cylcoeffs.values[4], cylcoeffs.values[5]);
                         PointT normVecPlan = PointT(coefficients->values[0], coefficients->values[1], coefficients->values[2]);
                         angleDeg = acos(Ransacer.dotProduct(cylvec, normVecPlan) / (Ransacer.normPointT(cylvec)*Ransacer.normPointT(normVecPlan)))*180/3.14;
+                        handAperture = cylcoeffs.values[6]*2 +2;
                         cout << "angle: " << angleDeg << endl;
                         break;
                         }
@@ -183,6 +185,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         viewerz->addPointCloud(sphpoints, cloudDownsampled_color_h, "Inliers", vp);
                         //viewerz->addSphere(sphcoeffs);
                         angleDeg = 45;
+                        handAperture = sphcoeffs.values[3] * 2 + 2;
                         break;
                         }
 
@@ -198,7 +201,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         viewerz->addPointCloud(boxpoints_vec[2], boxpoints3_color_h, "Inliers3", vp);
 
                         viewerz->addArrow(centroids[0], centroids[0] + eigvecs[0][0], 255, 0, 0, false, "p1v1");
-                        viewerz->addArrow(centroids[0], centroids[0] + eigvecs[0][1], 255, 0, 0, false, "p1v2");
+                        viewerz->addArrow(centroids[0], centroids[0] + eigvecs[0][0], 255, 0, 0, false, "p1v2");
                         viewerz->addArrow(centroids[1], centroids[1] + eigvecs[1][0], 0, 255, 0, false, "p2v1");
                         viewerz->addArrow(centroids[1], centroids[1] + eigvecs[1][1], 0, 255, 0, false, "p2v2");
                         viewerz->addArrow(centroids[2], centroids[2] + eigvecs[2][0], 0, 0, 255, false, "p3v1");
