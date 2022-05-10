@@ -179,7 +179,7 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(cov_mat, Eigen::ComputeEigenvectors);
         Eigen::Matrix3f eig_vec = eigen_solver.eigenvectors();
         Eigen::Vector3f eig_val = eigen_solver.eigenvalues();
-        eig_vec.col(2) = eig_vec.col(0).cross(eig_vec.col(1));
+        //eig_vec.col(2) = eig_vec.col(0).cross(eig_vec.col(1));
 
         std::vector<float> eig_val_conv = {eig_val[0, 0], eig_val[0, 1], eig_val[0, 2]};
         auto maxElementIndex = std::max_element(eig_val_conv.begin(), eig_val_conv.end()) - eig_val_conv.begin();
