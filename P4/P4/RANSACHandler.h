@@ -66,6 +66,7 @@ public:
     float normPointT(pcl::PointXYZ c);
     bool Checkorthogonal(std::vector<pcl::ModelCoefficients>, int i);
 
+    tuple <float, float> boxangle(std::vector<pcl::ModelCoefficients> boxcoeffs, pcl::ModelCoefficients planecoeffs, std::vector <float> boxdims, std::vector<std::vector<PointT>> eigenvecs);
     tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     tuple <float, std::vector<pcl::ModelCoefficients>, std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr>> check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);

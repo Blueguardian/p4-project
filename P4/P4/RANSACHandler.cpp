@@ -55,6 +55,10 @@ PointT operator* (const PointT Point1, const float multiplier) {
     return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
 }
 
+PointT operator* (const PointT Point1, const double multiplier) {
+    return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
+}
+
 std::array<float, 2> RANSACHandler::getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction)
 {
     std::array<float, 2> arr = { 1000.0, -1000.0 };
@@ -64,7 +68,7 @@ std::array<float, 2> RANSACHandler::getPointCloudExtremes(const pcl::PointCloud<
         vec.x = cloud.points[i].x - center.x;
         vec.y = cloud.points[i].y - center.y;
         vec.z = cloud.points[i].z - center.z;
-        scalar_proj = dotProduct(direction, vec) / normPointT(direction);
+        scalar_proj = normPointT(direction * dotProduct(direction, vec));
         if (scalar_proj < arr[0])
             arr[0] = scalar_proj;
         if (scalar_proj > arr[1])
@@ -95,7 +99,7 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
 bool RANSACHandler::Checkorthogonal(std::vector<pcl::ModelCoefficients> coeefs, int i) {
     cout << "coeffs size: " << coeefs.size() << endl;
     bool isOrthogonal = false;
-    float threshold = 0.1;
+    float threshold = 0.2;
     std::vector<float> dotProducts = {0,0,0};
 
     if (i < 3) {
@@ -140,6 +144,39 @@ void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoeff
     cyl.values.push_back(cylinder_height);
 }
 
+tuple <float, float> RANSACHandler::boxangle(std::vector<pcl::ModelCoefficients> boxcoeffs, pcl::ModelCoefficients planecoeffs, std::vector <float> boxdims, std::vector<std::vector<PointT>> eigenvecs)
+{
+//find the plane which is upwards
+    PointT PlaneNormal(planecoeffs.values[0], planecoeffs.values[1], planecoeffs.values[2]);
+    std::vector<float> dotproducts;
+    double maxHandAperture = 0.12;
+    int i = 0;
+    for(i; i > boxcoeffs.size(); i++){
+        PointT BoxNormal =  crossProduct(eigenvecs[i][0], eigenvecs[i][1]);
+        PointT PlaneNormal(planecoeffs.values[0], planecoeffs.values[1], planecoeffs.values[2]);
+        dotproducts.push_back(dotProduct(PlaneNormal, BoxNormal));
+        if (abs(dotProduct(PlaneNormal, BoxNormal)) > 0.9) {
+            break;
+        }
+    }
+
+    if (normPointT(eigenvecs[i][0]) > maxHandAperture && normPointT(eigenvecs[i][1]) > maxHandAperture) {
+        //not Graspable 
+    }
+    else if(normPointT(eigenvecs[i][0]) > normPointT(eigenvecs[i][1])) {
+        return { 0 , normPointT(eigenvecs[i][0]) };
+    }
+    else if (normPointT(eigenvecs[i][0]) < normPointT(eigenvecs[i][1])) {
+        return { 0 , normPointT(eigenvecs[i][0]) };
+
+    }
+
+    
+    
+
+}
+
+
 tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>>  RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec) {
     //for loop with runs the amount of planes
     
@@ -179,6 +216,7 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(cov_mat, Eigen::ComputeEigenvectors);
         Eigen::Matrix3f eig_vec = eigen_solver.eigenvectors();
         Eigen::Vector3f eig_val = eigen_solver.eigenvalues();
+        //cout << eig_val << "\n " << eig_vec << endl;
         //eig_vec.col(2) = eig_vec.col(0).cross(eig_vec.col(1));
 
         std::vector<float> eig_val_conv = {eig_val[0, 0], eig_val[0, 1], eig_val[0, 2]};
@@ -188,6 +226,8 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
 
         pcl::PointXYZ PC1(eig_vec(0, maxElementIndex), eig_vec(1, maxElementIndex), eig_vec(2, maxElementIndex)); //principal component 1
         pcl::PointXYZ PC2(eig_vec(0, secondBiggestElementsIndex), eig_vec(1, secondBiggestElementsIndex), eig_vec(2, secondBiggestElementsIndex)); //principal component 2
+
+        //cout << "PC1:" << PC1 << "PC2:" << PC2 << endl;
 
         pcl::PointXYZ transformedPoint;
         for (int idx = 0; idx < demeanedCloud->points.size(); idx++) {
@@ -199,16 +239,18 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
         
         std::array<float, 2> planedim1 = getPointCloudExtremes(*TransformedCloud, cnt_coord, PC1); //max and min along PC1
         std::array<float, 2> planedim2 = getPointCloudExtremes(*TransformedCloud, cnt_coord, PC2);
-        
+       
         dimension_vector[i][0] = abs(planedim1[0] - planedim1[1]); //save x 
         dimension_vector[i][1] = abs(planedim2[0] - planedim2[1]); //save y
+       
+        //if(dimension_vector[i][0] < dimension_vector[i][1])
 
         eigVec[0] = (PC1 * (dimension_vector[i][0]/2)); //scale the eigenvectors
         eigVec[1] = (PC2 * (dimension_vector[i][1]/2));
         eigVectors.push_back(eigVec);
-
+      
         cout << "Box dims: " << dimension_vector[i][0] << "  " << dimension_vector[i][1] << endl;
-
+        
     }
 
     cout << "\n";

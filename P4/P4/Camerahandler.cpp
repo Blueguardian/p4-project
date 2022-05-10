@@ -51,7 +51,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
         if (!cloud->empty())
         {
             //XYZfilter(cloud);
-            float filt_leaf_size = 0.01;
+            float filt_leaf_size = 0.002;
             std::array<float, 6> filter_lims = { -0.15, 0.15, -0.15, 0.15, 0.1, 0.6 }; // x-min, x-max, y-min, y-max, z-min, z-max
             pcl::PassThrough<PointT> pass(true);
 
@@ -81,7 +81,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
             if (!cloudDownsampled->size() == 0)
             {
                 // perform ransac planar filtration to remove table top
-                pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+                pcl::ModelCoefficients::Ptr tablecoefficients(new pcl::ModelCoefficients);
                 pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
                 // Create the segmentation object
                 pcl::SACSegmentation<pcl::PointXYZ> seg1;
@@ -93,7 +93,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                 seg1.setMaxIterations(100);
                 seg1.setDistanceThreshold(0.015);
                 seg1.setInputCloud(cloudDownsampled);
-                seg1.segment(*inliers, *coefficients);
+                seg1.segment(*inliers, *tablecoefficients);
 
                 // Create the filtering object
                 pcl::ExtractIndices<pcl::PointXYZ> extract;
@@ -146,11 +146,11 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
 
                     RANSACHandler Ransacer(cloud);
                     auto [Cylratio, cylcoeffs, cylpoints] = Ransacer.check_cyl(cloud_cluster);
-                    std::cout << "Cylinder Ratio: " << Cylratio << endl;
+                    //std::cout << "Cylinder Ratio: " << Cylratio << endl;
                     auto [Sphratio, sphcoeffs, sphpoints] = Ransacer.check_sph(cloud_cluster);
-                    std::cout << "Sphere Ratio: " << Sphratio << endl;
+                    //std::cout << "Sphere Ratio: " << Sphratio << endl;
                     auto [Boxratio, boxcoeffs_vec, boxpoints_vec] = Ransacer.check_box(cloud_cluster);
-                    std::cout << "Box Ratio: " << Boxratio << endl;
+                    //std::cout << "Box Ratio: " << Boxratio << endl;
 
                     viewerz->removeAllPointClouds();
                     viewerz->removeAllShapes();
@@ -160,7 +160,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     std::vector<float> ratios;
                     ratios.push_back(Cylratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
                     int shape = std::max_element(ratios.begin(), ratios.end()) - ratios.begin();
-                    float angleDeg = 0;
+                    float wristAngleDeg = 0;
                     float handAperture = 0;
 
                     // Debugging, using pcl::visualizer
@@ -172,10 +172,10 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         viewerz->addPointCloud(cylpoints, cloudDownsampled_color_h, "Inliers", vp);
                         //viewerz->addCylinder(cylcoeffs);
                         PointT cylvec = PointT(cylcoeffs.values[3], cylcoeffs.values[4], cylcoeffs.values[5]);
-                        PointT normVecPlan = PointT(coefficients->values[0], coefficients->values[1], coefficients->values[2]);
-                        angleDeg = acos(Ransacer.dotProduct(cylvec, normVecPlan) / (Ransacer.normPointT(cylvec)*Ransacer.normPointT(normVecPlan)))*180/3.14;
+                        PointT normVecPlan = PointT(tablecoefficients->values[0], tablecoefficients->values[1], tablecoefficients->values[2]);
+                        wristAngleDeg = acos(Ransacer.dotProduct(cylvec, normVecPlan) / (Ransacer.normPointT(cylvec)*Ransacer.normPointT(normVecPlan)))*180/3.14;
                         handAperture = cylcoeffs.values[6]*2 +2;
-                        cout << "angle: " << angleDeg << endl;
+                        //cout << "angle: " << wristAngleDeg << endl;
                         break;
                         }
 
@@ -184,7 +184,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(sphpoints, 255, 0, 0);
                         viewerz->addPointCloud(sphpoints, cloudDownsampled_color_h, "Inliers", vp);
                         //viewerz->addSphere(sphcoeffs);
-                        angleDeg = 45;
+                        wristAngleDeg = 45;
                         handAperture = sphcoeffs.values[3] * 2 + 2;
                         break;
                         }
@@ -192,6 +192,9 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     case 2: //Box 
                         {
                         auto [dims, eigvecs, centroids] = Ransacer.shape_box(boxpoints_vec);
+                        auto[angle, aperture] = Ransacer.boxangle(boxcoeffs_vec, *tablecoefficients, dims, eigvecs);
+                        wristAngleDeg = angle;
+                        handAperture = aperture;
                         //std::cout << dims[0] << " " << dims[1] << " " << dims[2] << endl;
                         pcl::visualization::PointCloudColorHandlerCustom<PointT> boxpoints1_color_h(boxpoints_vec[0], 255, 0, 0);
                         pcl::visualization::PointCloudColorHandlerCustom<PointT> boxpoints2_color_h(boxpoints_vec[1], 255, 0, 0);
@@ -200,15 +203,15 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         viewerz->addPointCloud(boxpoints_vec[1], boxpoints2_color_h, "Inliers2", vp);
                         viewerz->addPointCloud(boxpoints_vec[2], boxpoints3_color_h, "Inliers3", vp);
 
-                        viewerz->addArrow(centroids[0], centroids[0] + eigvecs[0][0], 255, 0, 0, false, "p1v1");
-                        viewerz->addArrow(centroids[0], centroids[0] + eigvecs[0][0], 255, 0, 0, false, "p1v2");
-                        viewerz->addArrow(centroids[1], centroids[1] + eigvecs[1][0], 0, 255, 0, false, "p2v1");
-                        viewerz->addArrow(centroids[1], centroids[1] + eigvecs[1][1], 0, 255, 0, false, "p2v2");
-                        viewerz->addArrow(centroids[2], centroids[2] + eigvecs[2][0], 0, 0, 255, false, "p3v1");
-                        viewerz->addArrow(centroids[2], centroids[2] + eigvecs[2][1], 0, 0, 255, false, "p3v2");
-                        //viewerz->addPlane(boxcoeffs_vec[0], "plane 1");
-                        //viewerz->addPlane(boxcoeffs_vec[1], "plane 2");
-                        //viewerz->addPlane(boxcoeffs_vec[2], "plane 3");
+                        viewerz->addArrow(centroids[0] + eigvecs[0][1], centroids[0], 255, 0, 0, true, "p1v1");
+                        viewerz->addArrow(centroids[0] + eigvecs[0][0], centroids[0], 255, 0, 0, true, "p1v2");
+                        viewerz->addArrow(centroids[1], centroids[1] + eigvecs[1][0], 0, 255, 0, true, "p2v1");
+                        viewerz->addArrow(centroids[1], centroids[1] + eigvecs[1][1], 0, 255, 0, true, "p2v2");
+                        viewerz->addArrow(centroids[2], centroids[2] + eigvecs[2][0], 0, 0, 255, true, "p3v1");
+                        viewerz->addArrow(centroids[2], centroids[2] + eigvecs[2][1], 0, 0, 255, true, "p3v2");
+
+
+
                         break;
                         }
                     }
