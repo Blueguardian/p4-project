@@ -59,6 +59,21 @@ PointT operator* (const PointT Point1, const double multiplier) {
     return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
 }
 
+extern PointT operator+ (const PointT Point1, const PointT Point2);/* {
+    return PointT(Point1.x + Point2.x, Point1.y + Point2.y, Point1.z + Point2.z);
+}*/
+
+PointT RANSACHandler::flipVector(PointT vec1, PointT vec2) {
+    double theta = 90 * 3.14 / 180;
+    PointT a = vec1;
+    PointT w = vec2;
+    PointT b = crossProduct(vec1, vec2);
+    PointT Parallel = b * (dotProduct(a, b) / dotProduct(b, b));
+    PointT Orthogonal = w * (normPointT(a) * sin(theta) / normPointT(w));
+    PointT flippedVec = Parallel + Orthogonal;
+    return flippedVec;
+}
+
 std::array<float, 2> RANSACHandler::getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction)
 {
     std::array<float, 2> arr = { 1000.0, -1000.0 };
@@ -68,7 +83,7 @@ std::array<float, 2> RANSACHandler::getPointCloudExtremes(const pcl::PointCloud<
         vec.x = cloud.points[i].x - center.x;
         vec.y = cloud.points[i].y - center.y;
         vec.z = cloud.points[i].z - center.z;
-        scalar_proj = normPointT(direction * dotProduct(direction, vec));
+        scalar_proj = dotProduct(vec, direction) / std::pow(normPointT(direction),2); //normPointT(direction * dotProduct(direction, vec));
         if (scalar_proj < arr[0])
             arr[0] = scalar_proj;
         if (scalar_proj > arr[1])
@@ -97,7 +112,6 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
 }
 
 bool RANSACHandler::Checkorthogonal(std::vector<pcl::ModelCoefficients> coeefs, int i) {
-    cout << "coeffs size: " << coeefs.size() << endl;
     bool isOrthogonal = false;
     float threshold = 0.2;
     std::vector<float> dotProducts = {0,0,0};
@@ -144,41 +158,40 @@ void RANSACHandler::shape_cyl(pcl::ModelCoefficients& cyl, const pcl::ModelCoeff
     cyl.values.push_back(cylinder_height);
 }
 
-tuple <float, float> RANSACHandler::boxangle(std::vector<pcl::ModelCoefficients> boxcoeffs, pcl::ModelCoefficients planecoeffs, std::vector <float> boxdims, std::vector<std::vector<PointT>> eigenvecs)
-{
+tuple <float, float> RANSACHandler::boxangle(std::vector<pcl::ModelCoefficients> boxcoeffs, pcl::ModelCoefficients planecoeffs, std::vector <PointT> centroids, std::vector<std::vector<PointT>> eigenvecs){
 //find the plane which is upwards
-    PointT PlaneNormal(planecoeffs.values[0], planecoeffs.values[1], planecoeffs.values[2]);
-    std::vector<float> dotproducts;
-    double maxHandAperture = 0.12;
+    PointT TableNormal(planecoeffs.values[0], planecoeffs.values[1], planecoeffs.values[2]);
+    std::vector<float> projections;
+    float scalar_proj = 0;
+    float maxHandAperture = 0.12;
+    float aperture = 0;
+    float angledeg = 0;
     int i = 0;
-    for(i; i > boxcoeffs.size(); i++){
-        PointT BoxNormal =  crossProduct(eigenvecs[i][0], eigenvecs[i][1]);
-        PointT PlaneNormal(planecoeffs.values[0], planecoeffs.values[1], planecoeffs.values[2]);
-        dotproducts.push_back(dotProduct(PlaneNormal, BoxNormal));
-        if (abs(dotProduct(PlaneNormal, BoxNormal)) > 0.9) {
-            break;
-        }
-    }
-
-    if (normPointT(eigenvecs[i][0]) > maxHandAperture && normPointT(eigenvecs[i][1]) > maxHandAperture) {
-        //not Graspable 
-    }
-    else if(normPointT(eigenvecs[i][0]) > normPointT(eigenvecs[i][1])) {
-        return { 0 , normPointT(eigenvecs[i][0]) };
-    }
-    else if (normPointT(eigenvecs[i][0]) < normPointT(eigenvecs[i][1])) {
-        return { 0 , normPointT(eigenvecs[i][0]) };
-
-    }
-
     
-    
+    for (size_t i = 0; i < boxcoeffs.size(); ++i) {
 
-}
+        scalar_proj = dotProduct(centroids[i], TableNormal) / std::pow(normPointT(TableNormal), 2);
+        projections.push_back(scalar_proj);
+    }
 
+    auto maxElementIndex = std::max_element(projections.begin(), projections.end()) - projections.begin();
+    PointT PlaneNormal(boxcoeffs[maxElementIndex].values[0], boxcoeffs[maxElementIndex].values[1], boxcoeffs[maxElementIndex].values[2]);
+    angledeg = acos(dotProduct(PlaneNormal, TableNormal) / (normPointT(PlaneNormal) * normPointT(TableNormal))) * 180 / 3.14;
+
+    std::vector <float> dims = {normPointT(eigenvecs[maxElementIndex][0]), normPointT(eigenvecs[maxElementIndex][1]) };
+    aperture = *std::min_element(dims.begin(), dims.end()) + 0.02;
+
+    if (aperture > maxHandAperture) {
+        cout << "Not Graspable" << endl;
+        return{ 1000,1000 };}
+
+    else {
+        return { angledeg , aperture };}
+
+    }
 
 tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>>  RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec) {
-    //for loop with runs the amount of planes
+    
     
     std::vector <float> boxDim = {0,0,0};                  //boxDim[0] = width; BoxDim[1] = height
     std::vector <pcl::PointIndices::Ptr> model_indices = {inliers_plane1, inliers_plane2, inliers_plane3};
@@ -191,7 +204,7 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
     Eigen::Vector3f eigen_val;
     float box_length, box_width, box_height;
 
-    for(int i = 0; i < boxinliers_vec.size(); i++) {
+    for(int i = 0; i < boxinliers_vec.size(); i++) { //for loop with runs the amount of planes
 
         demeanedCloud->clear();
         TransformedCloud->clear();
@@ -232,28 +245,35 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
         pcl::PointXYZ transformedPoint;
         for (int idx = 0; idx < demeanedCloud->points.size(); idx++) {
             transformedPoint.x = dotProduct(demeanedCloud->points[idx], PC1); // Transform the points be along the principal componets
-            transformedPoint.y = dotProduct(demeanedCloud->points[idx], PC2); 
+            transformedPoint.y = dotProduct(demeanedCloud->points[idx], PC2); //Normalise
             transformedPoint.z = 0; //The depth of the planes should be zero.
             TransformedCloud->push_back(transformedPoint);
         }
+
+        Eigen::Vector4f PCcentroid;
+        pcl::compute3DCentroid(*TransformedCloud, PCcentroid);
+        pcl::PointXYZ PCcnt_coord(PCcentroid[0], PCcentroid[1], PCcentroid[2]);
         
-        std::array<float, 2> planedim1 = getPointCloudExtremes(*TransformedCloud, cnt_coord, PC1); //max and min along PC1
-        std::array<float, 2> planedim2 = getPointCloudExtremes(*TransformedCloud, cnt_coord, PC2);
+        std::array<float, 2> planedim1 = getPointCloudExtremes(*TransformedCloud, PCcnt_coord, PC1); //max and min along PC1
+        std::array<float, 2> planedim2 = getPointCloudExtremes(*TransformedCloud, PCcnt_coord, PC2);
        
         dimension_vector[i][0] = abs(planedim1[0] - planedim1[1]); //save x 
-        dimension_vector[i][1] = abs(planedim2[0] - planedim2[1]); //save y
+        dimension_vector[i][1] = abs(planedim2[0] - planedim2[1]); //save y 
        
-        //if(dimension_vector[i][0] < dimension_vector[i][1])
+        //Whole lot of wierd shit that shouldn't be necessary
+        PointT flipped_PC1 = flipVector(PC1, PC2);
+        PointT flipped_PC2 = flipVector(PC2, PC1);
 
-        eigVec[0] = (PC1 * (dimension_vector[i][0]/2)); //scale the eigenvectors
-        eigVec[1] = (PC2 * (dimension_vector[i][1]/2));
+        eigVec[0] = (flipped_PC1 * (dimension_vector[i][0]/2)); //scale the eigenvectors
+        eigVec[1] = (flipped_PC2 * (dimension_vector[i][1]/2));
+
         eigVectors.push_back(eigVec);
       
-        cout << "Box dims: " << dimension_vector[i][0] << "  " << dimension_vector[i][1] << endl;
+        //cout << "Box dims: " << dimension_vector[i][0] << "  " << dimension_vector[i][1] << endl;
         
     }
 
-    cout << "\n";
+    //cout << "\n";
     
     for(int i = 0; i < 3; i++){
         lengths[i] = dimension_vector[i][0];
@@ -399,7 +419,7 @@ tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSA
     seg_sph.setModelType(pcl::SACMODEL_SPHERE);
     //seg_sph.setNormalDistanceWeight(0.01);
     seg_sph.setMaxIterations(500);
-    seg_sph.setDistanceThreshold(0.0012);
+    seg_sph.setDistanceThreshold(0.007);
     seg_sph.setRadiusLimits(0.005, 0.150);
     seg_sph.setInputCloud(cloud);
     //seg_sph.setInputNormals(cloud_normals);

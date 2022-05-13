@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 
     
 
-    while (! _kbhit()) // wait until a key is pressed
+    while (!_kbhit()) // wait until a key is pressed
     {
        
 

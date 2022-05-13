@@ -65,8 +65,9 @@ public:
     pcl::PointXYZ crossProduct(pcl::PointXYZ a, pcl::PointXYZ b);
     float normPointT(pcl::PointXYZ c);
     bool Checkorthogonal(std::vector<pcl::ModelCoefficients>, int i);
+    PointT flipVector(PointT vec1, PointT vec2);
 
-    tuple <float, float> boxangle(std::vector<pcl::ModelCoefficients> boxcoeffs, pcl::ModelCoefficients planecoeffs, std::vector <float> boxdims, std::vector<std::vector<PointT>> eigenvecs);
+    tuple <float, float> boxangle(std::vector<pcl::ModelCoefficients> boxcoeffs, pcl::ModelCoefficients planecoeffs, std::vector <PointT> centroids, std::vector<std::vector<PointT>> eigenvecs);
     tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     tuple <float, std::vector<pcl::ModelCoefficients>, std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr>> check_box(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);

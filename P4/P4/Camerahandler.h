@@ -38,6 +38,7 @@
 #include <stack>
 #include <sample_utils/PlatformResources.hpp>
 #include <RANSACHandler.h>
+#include <conio.h>
 #pragma once
 
 typedef pcl::PointXYZ PointT;
