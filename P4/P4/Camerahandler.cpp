@@ -29,6 +29,18 @@ PointT operator+ (const PointT Point1, const PointT Point2) {
     return PointT(Point1.x + Point2.x, Point1.y + Point2.y, Point1.z + Point2.z);
 }
 
+PointT operator* (const PointT Point1, const float multiplier) {
+    return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
+}
+
+PointT operator* (const PointT Point1, const double multiplier) {
+    return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
+}
+
+PointT operator* (const PointT Point1, const int multiplier) {
+    return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
+}
+
 Camerahandler::Camerahandler()
     {
         hasRun = false;
@@ -54,7 +66,8 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
         {
             //XYZfilter(cloud);
             float filt_leaf_size = 0.005;
-            std::array<float, 6> filter_lims = { -0.15, 0.15, -0.15, 0.15, 0.1, 0.6 }; // x-min, x-max, y-min, y-max, z-min, z-max
+            float filterlim = 0.15;
+            std::array<float, 6> filter_lims = { -filterlim, filterlim, -filterlim, filterlim, 0.1, 0.6}; // x-min, x-max, y-min, y-max, z-min, z-max
             pcl::PassThrough<PointT> pass(true);
 
             pass.setInputCloud(cloud);
@@ -79,6 +92,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
 
             if (!cloudDownsampled->size() == 0)
             {
+                
                 // perform ransac planar filtration to remove table top
                 pcl::ModelCoefficients::Ptr tablecoefficients(new pcl::ModelCoefficients);
                 pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
@@ -109,7 +123,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                 pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
                 // specify euclidean cluster parameters
                 ec.setClusterTolerance(0.01); // 1cm
-                ec.setMinClusterSize(500);
+                ec.setMinClusterSize(100);
                 ec.setMaxClusterSize(25000);
                 ec.setSearchMethod(tree);
                 ec.setInputCloud(cloudPlaneRemoved);
@@ -161,7 +175,6 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         return;
                     }
 
-
                     std::vector<float> ratios;
                     ratios.push_back(Cylratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
                     int shape = std::max_element(ratios.begin(), ratios.end()) - ratios.begin();
@@ -181,19 +194,30 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         {
                         pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cylpoints, 255, 0, 0);
                         viewerz->addPointCloud(cylpoints, cloudDownsampled_color_h, "Inliers", vp);
+
                         //viewerz->addCylinder(cylcoeffs);
                         PointT cylvec = PointT(cylcoeffs.values[3], cylcoeffs.values[4], cylcoeffs.values[5]);
                         PointT normVecPlan = PointT(tablecoefficients->values[0], tablecoefficients->values[1], tablecoefficients->values[2]);
                         PointT PointOnCyl(cylcoeffs.values[0], cylcoeffs.values[1], cylcoeffs.values[2]);
+
+                        //viewerz->addArrow(PointOnCyl + cylvec, PointOnCyl, 255, 0, 0);
                         std::array<float, 2> cylExtremes = Ransacer.getPointCloudExtremes(*cylpoints, PointOnCyl, cylvec);
                         height = abs(cylExtremes[0] - cylExtremes[1]);
-                        
-                        
-                        wristAngleDeg = acos(Ransacer.dotProduct(cylvec, normVecPlan) / (Ransacer.normPointT(cylvec)*Ransacer.normPointT(normVecPlan)))*180/3.14;
-                        if (wristAngleDeg > 90) {
-                            wristAngleDeg = wristAngleDeg - 180;
+
+                        if (cylvec.y > 0) {
+                            cylvec = cylvec * -1;        
                         }
 
+                        wristAngleDeg = acos(Ransacer.dotProduct(cylvec, normVecPlan) / (Ransacer.normPointT(cylvec) * Ransacer.normPointT(normVecPlan))) * 180 / 3.14;
+
+                        if(cylvec.x > 0 ){
+                            wristAngleDeg = -1 * wristAngleDeg;
+                        }
+
+                        
+                        cylvec = cylvec * 0.1;
+                        cout << cylvec << "\n";
+                        viewerz->addArrow(PointOnCyl + cylvec, PointOnCyl, 255, 0, 0);
                         handAperture = cylcoeffs.values[6]*2 +0.02;
                         cout << "angle: " << wristAngleDeg << endl;
                         break;
@@ -206,11 +230,8 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         //viewerz->addSphere(sphcoeffs);
                         wristAngleDeg = 45;
                         handAperture = sphcoeffs.values[3] * 2 + 0.02;
-                        if (runCounter < 100) {
-                            my_string += std::to_string(sphcoeffs.values[3]) + "\n";
                         }
-                        break;
-                        }
+                        
 
                     case 2: //Box 
                         {
@@ -225,7 +246,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         viewerz->addPointCloud(boxpoints_vec[0], boxpoints1_color_h, "Inliers1", vp);
                         viewerz->addPointCloud(boxpoints_vec[1], boxpoints2_color_h, "Inliers2", vp);
                         viewerz->addPointCloud(boxpoints_vec[2], boxpoints3_color_h, "Inliers3", vp);
-
+                        
                         viewerz->addArrow(centroids[0] + eigvecs[0][1], centroids[0], 255, 0, 0, true, "p1v1");
                         //viewerz->addArrow(centroids[0] + eigvecs[0][0], centroids[0], 255, 0, 0, true, "p1v2");
                         viewerz->addArrow(centroids[1] + eigvecs[1][0], centroids[1], 0, 255, 0, true, "p2v1");
@@ -233,14 +254,19 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         //viewerz->addArrow(centroids[2] + eigvecs[2][0], centroids[2] , 0, 0, 255, true, "p3v1");
                         viewerz->addArrow(centroids[2] + eigvecs[2][1], centroids[2] , 0, 0, 255, true, "p3v2");
                         /*
+                        viewerz->addPlane(boxcoeffs_vec[0], "plane1");
+                        viewerz->addPlane(boxcoeffs_vec[1], "plane2");
+                        viewerz->addPlane(boxcoeffs_vec[2], "plane3");
+                        */
+
                         length = Ransacer.normPointT(eigvecs[1][0]);
                         width = Ransacer.normPointT(eigvecs[0][1]);
                         depth = Ransacer.normPointT(eigvecs[2][1]);
                         if (runCounter < 100) {
                             my_string += std::to_string(length) + " " + std::to_string(width) + " " + std::to_string(depth) + "\n";
-                        }
-                        */
+                            }
                         
+                        runCounter++;
                         break;
                         }
                     }
@@ -252,18 +278,19 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     std::ofstream file("filename");
                     file << my_string;
                     }
-                    runCounter++;
+                    
                     //cout << "Run : " << runCounter << "\n";
-
+                    
                     return;
                 }
                 else {
                     return;
                 }
 
-                
+             
             }
             else {
+            
                 return;
             }
         }
@@ -271,13 +298,6 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
         else {
             return;
         }
-
-
-        
-
-        
-
-        
     }
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::DepthData* data, uint8_t depthConfidence)

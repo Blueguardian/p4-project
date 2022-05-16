@@ -51,17 +51,13 @@ pcl::PointCloud<PointT>::Ptr shpPoints(new pcl::PointCloud<PointT>);
 RANSACHandler::RANSACHandler(pcl::PointCloud<PointT>::Ptr& cloud) {  
 }
 
-PointT operator* (const PointT Point1, const float multiplier) {
-    return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
-}
+extern PointT operator* (const PointT Point1, const float multiplier);
 
-PointT operator* (const PointT Point1, const double multiplier) {
-    return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
-}
+extern PointT operator* (const PointT Point1, const double multiplier);
 
-extern PointT operator+ (const PointT Point1, const PointT Point2);/* {
-    return PointT(Point1.x + Point2.x, Point1.y + Point2.y, Point1.z + Point2.z);
-}*/
+extern PointT operator+ (const PointT Point1, const PointT Point2);
+
+extern PointT operator* (const PointT Point1, const int multiplier);
 
 PointT RANSACHandler::flipVector(PointT vec1, PointT vec2) {
     double theta = 90 * 3.14 / 180;
@@ -113,14 +109,14 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
 
 bool RANSACHandler::Checkorthogonal(std::vector<pcl::ModelCoefficients> coeefs, int i) {
     bool isOrthogonal = false;
-    float threshold = 0.2;
+    float threshold = 0.1;
     std::vector<float> dotProducts = {0,0,0};
-
+    /*
     if (i < 3) {
         isOrthogonal = true;
     return isOrthogonal;
     }
-
+    */
     PointT normal1(coeefs[0].values[0], coeefs[0].values[1], coeefs[0].values[2]);
 
     PointT normal2(coeefs[1].values[0], coeefs[1].values[1] , coeefs[1].values[2] );
@@ -278,7 +274,8 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
     for(int i = 0; i < 3; i++){
         lengths[i] = dimension_vector[i][0];
     }
-
+   
+    
     auto maxElementIndex = std::max_element(lengths.begin(), lengths.end()) - lengths.begin();
     box_length = lengths[maxElementIndex];
     lengths.erase(lengths.begin() + maxElementIndex);
@@ -311,8 +308,8 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
     else {
         boxDim[2] = box_height;
     }
-
-    return { boxDim, eigVectors,centroids};
+    
+    return { boxDim, eigVectors ,centroids};
    }
 
 tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSACHandler::check_cyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
@@ -333,7 +330,7 @@ tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSA
     seg_cylinder.setModelType(pcl::SACMODEL_CYLINDER);
     seg_cylinder.setNormalDistanceWeight(0.01);
     seg_cylinder.setMaxIterations(500);
-    seg_cylinder.setDistanceThreshold(0.005);
+    seg_cylinder.setDistanceThreshold(0.01); //0.005
     seg_cylinder.setRadiusLimits(0.01, 0.120);
     seg_cylinder.setInputCloud(cloud);
     seg_cylinder.setInputNormals(cloud_normals);
