@@ -25,6 +25,13 @@ int vp = 0;
 int runCounter = 0;
 std::string my_string = "";
 
+int cylcounter = 0;
+int sphcounter = 0;
+int boxcounter = 0;
+
+
+float wristAngleAve = 0;
+
 PointT operator+ (const PointT Point1, const PointT Point2) {
     return PointT(Point1.x + Point2.x, Point1.y + Point2.y, Point1.z + Point2.z);
 }
@@ -169,8 +176,8 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     viewerz->removeAllShapes();
                     pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cluster_color_h(cloud_cluster, 255, 255, 255);
                     viewerz->addPointCloud(cloud_cluster, cloud_cluster_color_h, "Cluster", vp);
-                    
-                    if (Cylratio < 50 && Sphratio < 50 && Boxratio < 50) {
+                    int minratio = 60;
+                    if (Cylratio < minratio && Sphratio < minratio && Boxratio < minratio) {
                         viewerz->spinOnce(1, true);
                         return;
                     }
@@ -192,6 +199,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
 
                     case 0:  //Cylinder 
                         {
+                       
                         pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cylpoints, 255, 0, 0);
                         viewerz->addPointCloud(cylpoints, cloudDownsampled_color_h, "Inliers", vp);
 
@@ -216,10 +224,20 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
 
                         
                         cylvec = cylvec * 0.1;
-                        cout << cylvec << "\n";
+                        
+                        
                         viewerz->addArrow(PointOnCyl + cylvec, PointOnCyl, 255, 0, 0);
                         handAperture = cylcoeffs.values[6]*2 +0.02;
-                        cout << "angle: " << wristAngleDeg << endl;
+
+
+                        wristAngleAve = wristAngleAve * 0.8 + wristAngleDeg * 0.2;
+
+                        if (runCounter == 0) {
+                            wristAngleAve = wristAngleDeg;
+                        }
+
+                        //cout << "angle: " << wristAngleAve << endl;
+                        cylcounter++;
                         break;
                         }
 
@@ -230,6 +248,8 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         //viewerz->addSphere(sphcoeffs);
                         wristAngleDeg = 45;
                         handAperture = sphcoeffs.values[3] * 2 + 0.02;
+                        sphcounter++;
+                        break;
                         }
                         
 
@@ -262,11 +282,15 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         length = Ransacer.normPointT(eigvecs[1][0]);
                         width = Ransacer.normPointT(eigvecs[0][1]);
                         depth = Ransacer.normPointT(eigvecs[2][1]);
-                        if (runCounter < 100) {
-                            my_string += std::to_string(length) + " " + std::to_string(width) + " " + std::to_string(depth) + "\n";
-                            }
+                       
+
+                        wristAngleAve = 0.8 * wristAngleAve + 0.2 * wristAngleDeg;
+                        if (runCounter == 0) {
+                            wristAngleAve = wristAngleDeg;
+                        }
+                        //cout << wristAngleAve << endl;
                         
-                        runCounter++;
+                        boxcounter++;
                         break;
                         }
                     }
@@ -274,13 +298,16 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                    
                     viewerz->spinOnce(1, true);
 
+                    runCounter = boxcounter + cylcounter + sphcounter;
+
                     if(runCounter == 100){
-                    std::ofstream file("filename");
-                    file << my_string;
+                        my_string += "boxes: " + std::to_string(boxcounter) + " Cylinders: " + std::to_string(cylcounter) + " Spheres: " + std::to_string(sphcounter);
+                            cout << my_string << "\n";
                     }
-                    
-                    //cout << "Run : " << runCounter << "\n";
-                    
+
+                    if (runCounter < 100) {
+                        cout << "Run : " << runCounter << "\n";
+                    }
                     return;
                 }
                 else {

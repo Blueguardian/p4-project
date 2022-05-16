@@ -109,14 +109,14 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
 
 bool RANSACHandler::Checkorthogonal(std::vector<pcl::ModelCoefficients> coeefs, int i) {
     bool isOrthogonal = false;
-    float threshold = 0.1;
+    float threshold = 0.2;
     std::vector<float> dotProducts = {0,0,0};
-    /*
+    
     if (i < 3) {
         isOrthogonal = true;
     return isOrthogonal;
     }
-    */
+    
     PointT normal1(coeefs[0].values[0], coeefs[0].values[1], coeefs[0].values[2]);
 
     PointT normal2(coeefs[1].values[0], coeefs[1].values[1] , coeefs[1].values[2] );
@@ -173,6 +173,10 @@ tuple <float, float> RANSACHandler::boxangle(std::vector<pcl::ModelCoefficients>
     auto maxElementIndex = std::max_element(projections.begin(), projections.end()) - projections.begin();
     PointT PlaneNormal(boxcoeffs[maxElementIndex].values[0], boxcoeffs[maxElementIndex].values[1], boxcoeffs[maxElementIndex].values[2]);
     angledeg = acos(dotProduct(PlaneNormal, TableNormal) / (normPointT(PlaneNormal) * normPointT(TableNormal))) * 180 / 3.14;
+
+    if (PlaneNormal.x > 0) {
+        angledeg = -1 * angledeg;
+    }
 
     std::vector <float> dims = {normPointT(eigenvecs[maxElementIndex][0]), normPointT(eigenvecs[maxElementIndex][1]) };
     aperture = *std::min_element(dims.begin(), dims.end()) + 0.02;
