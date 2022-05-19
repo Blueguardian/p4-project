@@ -358,7 +358,7 @@ tuple <float, std::vector<pcl::ModelCoefficients>, std::vector <pcl::PointCloud<
     plane_clouds[0] = cloud;
     
     seg_box.setOptimizeCoefficients(true);
-    seg_box.setMethodType(pcl::SAC_LMEDS);
+    seg_box.setMethodType(pcl::SAC_RANSAC);
     seg_box.setModelType(pcl::SACMODEL_PLANE);
     seg_box.setMaxIterations(1000);
     seg_box.setDistanceThreshold(0.005);
@@ -369,7 +369,7 @@ tuple <float, std::vector<pcl::ModelCoefficients>, std::vector <pcl::PointCloud<
     ratio_planes[2] = 0;
 
     int i = 0;
-        int nPoints = cloud->points.size();
+    int nPoints = cloud->points.size();
     while (plane_clouds[i]->size() > nPoints * 0.1 && i < 3)
     {
         seg_box.setInputCloud(plane_clouds[i]);

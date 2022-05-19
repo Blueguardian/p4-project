@@ -58,7 +58,8 @@ Camerahandler::Camerahandler()
     }
 
 void Camerahandler::onNewData(const royale::DepthData* data)  {
-        
+
+        auto CallbackStart = std::chrono::high_resolution_clock::now();
         cloud = points2pcl(data, 100);
         //std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
         if (!isViewer) 
@@ -76,7 +77,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
             float filterlim = 0.15;
             std::array<float, 6> filter_lims = { -filterlim, filterlim, -filterlim, filterlim, 0.1, 0.6}; // x-min, x-max, y-min, y-max, z-min, z-max
             pcl::PassThrough<PointT> pass(true);
-
+            
             pass.setInputCloud(cloud);
             pass.setFilterFieldName("x");
             pass.setFilterLimits(filter_lims[0], filter_lims[1]);
@@ -91,7 +92,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
             pass.setFilterFieldName("z");
             pass.setFilterLimits(filter_lims[4], filter_lims[5]);
             pass.filter(*cloudFilteredXYZ);
-
+            
             pcl::VoxelGrid<pcl::PointXYZ> dsfilt;
             dsfilt.setInputCloud(cloudFilteredXYZ);
             dsfilt.setLeafSize(filt_leaf_size, filt_leaf_size, filt_leaf_size);
@@ -163,7 +164,8 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     for (const auto& idx : ClosestIndex->indices) {
                         cloud_cluster->push_back((*cloudPlaneRemoved)[idx]);
                     }
-                    
+                    auto PreproccessingEnd = std::chrono::high_resolution_clock::now();
+
                     RANSACHandler Ransacer(cloud);
                     auto [Cylratio, cylcoeffs, cylpoints] = Ransacer.check_cyl(cloud_cluster);
                     //std::cout << "Cylinder Ratio: " << Cylratio << endl;
@@ -171,11 +173,12 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     //std::cout << "Sphere Ratio: " << Sphratio << endl;
                     auto [Boxratio, boxcoeffs_vec, boxpoints_vec] = Ransacer.check_box(cloud_cluster);
                     //std::cout << "Box Ratio: " << Boxratio << endl;
-                    
+                    auto RansacEnd = std::chrono::high_resolution_clock::now();
                     viewerz->removeAllPointClouds();
                     viewerz->removeAllShapes();
-                    pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cluster_color_h(cloud_cluster, 255, 255, 255);
+                    pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cluster_color_h(cloud_cluster, 255, 0, 0);
                     viewerz->addPointCloud(cloud_cluster, cloud_cluster_color_h, "Cluster", vp);
+
                     int minratio = 60;
                     if (Cylratio < minratio && Sphratio < minratio && Boxratio < minratio) {
                         viewerz->spinOnce(1, true);
@@ -187,12 +190,12 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     int shape = std::max_element(ratios.begin(), ratios.end()) - ratios.begin();
                     float wristAngleDeg = 0;
                     float handAperture = 0;
-
                     
-                    float length;
-                    float width;
-                    float depth;
-                    float height;
+                    float length = 0;
+                    float width = 0;
+                    float depth = 0;
+                    float height = 0;
+                    float radius = 0;
 
                     // Debugging, using pcl::visualizer
                     switch (shape) {
@@ -211,7 +214,8 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         //viewerz->addArrow(PointOnCyl + cylvec, PointOnCyl, 255, 0, 0);
                         std::array<float, 2> cylExtremes = Ransacer.getPointCloudExtremes(*cylpoints, PointOnCyl, cylvec);
                         height = abs(cylExtremes[0] - cylExtremes[1]);
-
+                        radius = cylcoeffs.values[6];
+                      
                         if (cylvec.y > 0) {
                             cylvec = cylvec * -1;        
                         }
@@ -234,9 +238,10 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
 
                         if (runCounter == 0) {
                             wristAngleAve = wristAngleDeg;
-                        }
+                        }                    
 
                         //cout << "angle: " << wristAngleAve << endl;
+                        cout << "Cylinder" << endl;
                         cylcounter++;
                         break;
                         }
@@ -248,6 +253,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         //viewerz->addSphere(sphcoeffs);
                         wristAngleDeg = 45;
                         handAperture = sphcoeffs.values[3] * 2 + 0.02;
+                        cout << "sphere" << endl;
                         sphcounter++;
                         break;
                         }
@@ -273,11 +279,6 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         //viewerz->addArrow(centroids[1] + eigvecs[1][1], centroids[1] , 0, 255, 0, true, "p2v2");
                         //viewerz->addArrow(centroids[2] + eigvecs[2][0], centroids[2] , 0, 0, 255, true, "p3v1");
                         viewerz->addArrow(centroids[2] + eigvecs[2][1], centroids[2] , 0, 0, 255, true, "p3v2");
-                        /*
-                        viewerz->addPlane(boxcoeffs_vec[0], "plane1");
-                        viewerz->addPlane(boxcoeffs_vec[1], "plane2");
-                        viewerz->addPlane(boxcoeffs_vec[2], "plane3");
-                        */
 
                         length = Ransacer.normPointT(eigvecs[1][0]);
                         width = Ransacer.normPointT(eigvecs[0][1]);
@@ -289,25 +290,36 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                             wristAngleAve = wristAngleDeg;
                         }
                         //cout << wristAngleAve << endl;
-                        
+                        //cout << 'BOX' << endl;
+
                         boxcounter++;
                         break;
                         }
                     }
+
                         
-                   
-                    viewerz->spinOnce(1, true);
+                    //viewerz->spinOnce(1, true);
+                    auto CallbackEnd = std::chrono::high_resolution_clock::now();
 
-                    runCounter = boxcounter + cylcounter + sphcounter;
+                    runCounter = cylcounter + sphcounter + boxcounter;
 
-                    if(runCounter == 100){
-                        my_string += "boxes: " + std::to_string(boxcounter) + " Cylinders: " + std::to_string(cylcounter) + " Spheres: " + std::to_string(sphcounter);
-                            cout << my_string << "\n";
-                    }
-
-                    if (runCounter < 100) {
+                    if (runCounter <= 1000) {
+                        auto DurCallBack = std::chrono::duration_cast<std::chrono::microseconds>(CallbackEnd - CallbackStart);
+                        auto DurPreProc = std::chrono::duration_cast<std::chrono::microseconds>(PreproccessingEnd - CallbackStart);
+                        auto DurRansac = std::chrono::duration_cast<std::chrono::microseconds>(RansacEnd - PreproccessingEnd);
+                        auto DurShaping = std::chrono::duration_cast<std::chrono::microseconds>(CallbackEnd -RansacEnd);
+                        my_string += std::to_string(DurCallBack.count()) + " " + std::to_string(DurPreProc.count()) + " " + std::to_string(DurRansac.count()) + " " + std::to_string(DurShaping.count()) + "\n";
+                        //cout << my_string;
                         cout << "Run : " << runCounter << "\n";
+
                     }
+
+                    if (runCounter == 1000) {
+                        ofstream file("Timings");
+                        file << my_string;
+                        file.close();
+                    }
+
                     return;
                 }
                 else {
