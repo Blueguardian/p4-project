@@ -288,7 +288,7 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
     lengths.erase(lengths.begin() + maxElementIndex);
     maxElementIndex = std::max_element(lengths.begin(), lengths.end()) - lengths.begin();
     box_height = lengths[maxElementIndex];
-    
+    // This should not be necessary??
     //NaN error
     if (box_length != box_length) {
         box_length = 0;
