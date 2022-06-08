@@ -9,6 +9,7 @@ using namespace std;
     
 // Pointcloud global objects and variables
 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
+pcl::PointCloud<PointT>::Ptr fullcloud(new pcl::PointCloud<PointT>);
 pcl::PointCloud<PointT>::Ptr cloudFilteredX(new pcl::PointCloud<PointT>); // We need to make a new cloud for each filter because of
 pcl::PointCloud<PointT>::Ptr cloudFilteredXY(new pcl::PointCloud<PointT>);// boost shared Ptr will go out of scope and free the pointer
 pcl::PointCloud<PointT>::Ptr cloudFilteredXYZ(new pcl::PointCloud<PointT>);// if we do not, we will invalidate the heap.
@@ -59,8 +60,17 @@ Camerahandler::Camerahandler()
 void Camerahandler::onNewData(const royale::DepthData* data)  {
 
         
-        cloud = points2pcl(data, 100);
+        fullcloud = points2pcl(data, 0);
+
+        if(fullcloud->size() > 50){
+        bool shouldCloseHand = autoGrasp(fullcloud);
+        cout << "Grasping is: " << shouldCloseHand << "\n";
+        }
+
+        cloud = points2pcl(data, 0);
+
         //std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
+
         if (!isViewer) 
         {
             viewerz = initViewer();
@@ -71,25 +81,25 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
 
         if (!cloud->empty())
         {
-            //XYZfilter(cloud);
+
             float filt_leaf_size = 0.005;
-            float filterlim = 0.15;
-            std::array<float, 6> filter_lims = { -filterlim, filterlim, -filterlim, filterlim, 0.1, 0.6}; // x-min, x-max, y-min, y-max, z-min, z-max
+            float Croppinglimit = 0.05; // defines x-min, x-max, y-min, y-max 0.15
+
             pcl::PassThrough<PointT> pass(true);
             
             pass.setInputCloud(cloud);
             pass.setFilterFieldName("x");
-            pass.setFilterLimits(filter_lims[0], filter_lims[1]);
+            pass.setFilterLimits(-Croppinglimit, Croppinglimit);
             pass.filter(*cloudFilteredX);
 
             pass.setInputCloud(cloudFilteredX);
             pass.setFilterFieldName("y");
-            pass.setFilterLimits(filter_lims[2], filter_lims[3]);
+            pass.setFilterLimits(-Croppinglimit, Croppinglimit);
             pass.filter(*cloudFilteredXY);
 
             pass.setInputCloud(cloudFilteredXY);
             pass.setFilterFieldName("z");
-            pass.setFilterLimits(filter_lims[4], filter_lims[5]);
+            pass.setFilterLimits(0, 0.15); // 0.1 -> 0.6
             pass.filter(*cloudFilteredXYZ);
             
             pcl::VoxelGrid<pcl::PointXYZ> dsfilt;
@@ -103,9 +113,9 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                 // perform ransac planar filtration to remove table top
                 pcl::ModelCoefficients::Ptr tablecoefficients(new pcl::ModelCoefficients);
                 pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-                // Create the segmentation object
+
                 pcl::SACSegmentation<pcl::PointXYZ> seg1;
-                // Optional
+
                 seg1.setOptimizeCoefficients(true);
                 // Mandatory
                 seg1.setModelType(pcl::SACMODEL_PLANE);
@@ -156,7 +166,6 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                             smallestdist = distOrigin2center;
                             ClosestIndex = it;
                         }
-
                     }
 
                     cloud_cluster->clear();
@@ -183,10 +192,10 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
 
 
                     int minratio = 60;
-                    if (Cylratio < minratio && Sphratio < minratio && Boxratio < minratio) {
+                    //if (Cylratio < minratio && Sphratio < minratio && Boxratio < minratio) {
                         viewerz->spinOnce(1, true);
                         return;
-                    }
+                    //}
 
                     std::vector<float> ratios;
                     ratios.push_back(Cylratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
@@ -199,7 +208,8 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     float depth = -1;
                     float height = 0;
                     float radius = 0;
-
+                    float gripDist = 0.13;
+                    
                     // Debugging, using pcl::visualizer
                     switch (shape) {
 
@@ -258,6 +268,12 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         handAperture = sphcoeffs.values[3] * 2 + 0.02;
                         cout << "sphere" << endl;
                         length = sphcoeffs.values[3];
+
+                        //very simple automated grasping, should never be triggered
+                       /* PointT sphCenter(sphcoeffs.values[0], sphcoeffs.values[1], sphcoeffs.values[2]);
+                        if (Ransacer.normPointT(sphCenter) < gripDist) {
+                            shouldCloseHand = true;
+                        }*/
                         sphcounter++;
                         break;
                         }
@@ -357,6 +373,39 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::Dept
         }
         return cloud;
     }
+
+bool Camerahandler::autoGrasp(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+    bool objInRange = false;
+    float Croppinglimit = 0.05; // defines x-min, x-max, y-min, y-max,
+
+    pcl::PassThrough<PointT> pass(true);
+
+    pass.setInputCloud(cloud);
+    pass.setFilterFieldName("x");
+    pass.setFilterLimits(-Croppinglimit, Croppinglimit);
+    pass.filter(*cloudFilteredX);
+
+    pass.setInputCloud(cloudFilteredX);
+    pass.setFilterFieldName("y");
+    pass.setFilterLimits(-Croppinglimit, Croppinglimit);
+    pass.filter(*cloudFilteredXY);
+
+    pass.setInputCloud(cloudFilteredXY);
+    pass.setFilterFieldName("z");
+    pass.setFilterLimits(0.0, 0.15);
+    pass.filter(*cloudFilteredXYZ);
+
+    Eigen::Vector4f centroid;
+    pcl::compute3DCentroid(*cloudFilteredXYZ, centroid);
+    float distToCent = sqrt(pow(centroid.x(),2) + pow(centroid.y(),2) + pow(centroid.z(),2));
+    cout << " Distance is: " << distToCent << endl;
+    if (distToCent < 0.012 && distToCent > 0) {
+        cout << "here 1 \n";
+        objInRange = true;
+    }
+
+    return objInRange;
+}
 
 pcl::visualization::PCLVisualizer::Ptr Camerahandler::initViewer()
 {
