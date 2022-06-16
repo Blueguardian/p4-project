@@ -22,15 +22,23 @@ pcl::PointIndices::Ptr indices(new pcl::PointIndices);
 // Viewer global variables
 pcl::visualization::PCLVisualizer::Ptr viewerz;
 bool isViewer = false;
-int vp = 0;
-int runCounter = 0;
-std::string my_string = "";
+bool isBox = false;
+bool isCyl = false;
+bool isSph = false;
+pcl::ModelCoefficients LastObjectCoeffs;
+
+float maxGrasDist = 0.1;
 
 int cylcounter = 0;
 int sphcounter = 0;
 int boxcounter = 0;
 
+int vp = 0;
+int runCounter = 0;
+
 float wristAngleAve = 0;
+
+bool AutograspOn = false;
 
 PointT operator+ (const PointT Point1, const PointT Point2) {
     return PointT(Point1.x + Point2.x, Point1.y + Point2.y, Point1.z + Point2.z);
@@ -59,15 +67,32 @@ Camerahandler::Camerahandler()
 
 void Camerahandler::onNewData(const royale::DepthData* data)  {
 
-        
+       if(AutograspOn){
         fullcloud = points2pcl(data, 0);
-
-        if(fullcloud->size() > 50){
-        bool shouldCloseHand = autoGrasp(fullcloud);
-        cout << "Grasping is: " << shouldCloseHand << "\n";
+        if(fullcloud->size() > 50){ 
+        bool shouldCloseHandSimple = autoGraspSimple(fullcloud); // bad but simple autograsping algorithm
         }
 
-        cloud = points2pcl(data, 0);
+        // Primitive-specific autograsping algorithms
+        bool shouldCloseHandPriSpec = false;
+
+        
+        if (isCyl) {
+            shouldCloseHandPriSpec = autoGraspCyl(fullcloud);
+        }
+
+        else if (isSph) {
+             shouldCloseHandPriSpec = autoGraspSph(fullcloud);
+         }
+       
+        else if (isBox) {
+            shouldCloseHandPriSpec = autoGraspBox(fullcloud);
+        }
+       }
+
+        
+
+        cloud = points2pcl(data, 100);
 
         //std::cout << "\nRead pointcloud from " << cloud->size() << " data points.\n" << std::endl;
 
@@ -83,7 +108,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
         {
 
             float filt_leaf_size = 0.005;
-            float Croppinglimit = 0.05; // defines x-min, x-max, y-min, y-max 0.15
+            float Croppinglimit = 0.15; // defines x-min, x-max, y-min, y-max 0.15
 
             pcl::PassThrough<PointT> pass(true);
             
@@ -99,7 +124,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
 
             pass.setInputCloud(cloudFilteredXY);
             pass.setFilterFieldName("z");
-            pass.setFilterLimits(0, 0.15); // 0.1 -> 0.6
+            pass.setFilterLimits(0.1, 0.60); // 0.1 -> 0.6
             pass.filter(*cloudFilteredXYZ);
             
             pcl::VoxelGrid<pcl::PointXYZ> dsfilt;
@@ -184,18 +209,18 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     viewerz->removeAllPointClouds();
                     viewerz->removeAllShapes();
 
-                    pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_color_h(cloudDownsampled, 255, 255, 255);
+                    pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_color_h(cloudDownsampled, 0, 0, 255);
                     viewerz->addPointCloud(cloudDownsampled, cloud_color_h, "Downsampled", vp);
 
-                    pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cluster_color_h(cloud_cluster, 255, 0, 0);
+                    pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cluster_color_h(cloud_cluster, 255, 255, 255);
                     viewerz->addPointCloud(cloud_cluster, cloud_cluster_color_h, "Cluster", vp);
 
 
                     int minratio = 60;
-                    //if (Cylratio < minratio && Sphratio < minratio && Boxratio < minratio) {
+                    if (Cylratio < minratio && Sphratio < minratio && Boxratio < minratio) {
                         viewerz->spinOnce(1, true);
                         return;
-                    //}
+                    }
 
                     std::vector<float> ratios;
                     ratios.push_back(Cylratio); ratios.push_back(Sphratio); ratios.push_back(Boxratio);
@@ -216,10 +241,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     case 0:  //Cylinder 
                         {
                        
-                        pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cylpoints, 255, 0, 0);
-                        viewerz->addPointCloud(cylpoints, cloudDownsampled_color_h, "Inliers", vp);
-
-                        viewerz->addCylinder(cylcoeffs);
+                        
                         PointT cylvec = PointT(cylcoeffs.values[3], cylcoeffs.values[4], cylcoeffs.values[5]);
                         PointT normVecPlan = PointT(tablecoefficients->values[0], tablecoefficients->values[1], tablecoefficients->values[2]);
                         PointT PointOnCyl(cylcoeffs.values[0], cylcoeffs.values[1], cylcoeffs.values[2]);
@@ -229,6 +251,12 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         width = abs(cylExtremes[0] - cylExtremes[1]); //height = abs(cylExtremes[0] - cylExtremes[1]);
                         length = cylcoeffs.values[6];//radius = cylcoeffs.values[6];
                       
+                        pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cylpoints, 255, 0, 0);
+                        viewerz->addPointCloud(cylpoints, cloudDownsampled_color_h, "Inliers", vp);
+      
+                        cylcoeffs.values[3] = cylcoeffs.values[3]* width; cylcoeffs.values[4] = cylcoeffs.values[4] * width; cylcoeffs.values[5] = cylcoeffs.values[5] * width;
+                        viewerz->addCylinder(cylcoeffs);
+
                         if (cylvec.y > 0) {
                             cylvec = cylvec * -1;        
                         }
@@ -239,23 +267,20 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                             wristAngleDeg = -1 * wristAngleDeg;
                         }
 
-                        
-                        cylvec = cylvec * 0.1;
-                        
-                        
-                        viewerz->addArrow(PointOnCyl + cylvec, PointOnCyl, 255, 0, 0);
                         handAperture = cylcoeffs.values[6]*2 +0.02;
 
-
-                        wristAngleAve = wristAngleAve * 0.8 + wristAngleDeg * 0.2;
-
+                        wristAngleAve = wristAngleAve * 0.95 + wristAngleDeg * 0.05;
                         if (runCounter == 0) {
                             wristAngleAve = wristAngleDeg;
                         }                    
 
+                        
+
                         //cout << "angle: " << wristAngleAve << endl;
-                        cout << "Cylinder" << endl;
+
                         cylcounter++;
+                        isCyl = true;
+                        LastObjectCoeffs = cylcoeffs;
                         break;
                         }
 
@@ -266,15 +291,11 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         viewerz->addSphere(sphcoeffs);
                         wristAngleDeg = 45;
                         handAperture = sphcoeffs.values[3] * 2 + 0.02;
-                        cout << "sphere" << endl;
                         length = sphcoeffs.values[3];
 
-                        //very simple automated grasping, should never be triggered
-                       /* PointT sphCenter(sphcoeffs.values[0], sphcoeffs.values[1], sphcoeffs.values[2]);
-                        if (Ransacer.normPointT(sphCenter) < gripDist) {
-                            shouldCloseHand = true;
-                        }*/
                         sphcounter++;
+                        isSph = true;
+                        LastObjectCoeffs = sphcoeffs;
                         break;
                         }
                         
@@ -282,9 +303,9 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     case 2: //Box 
                         {
                         auto [dims, eigvecs, centroids] = Ransacer.shape_box(boxpoints_vec);
-                        auto[angle, aperture] = Ransacer.boxangle(boxcoeffs_vec, *tablecoefficients, centroids, eigvecs);
-                        wristAngleDeg = angle;
-                        handAperture = aperture;
+                        auto[wristAngleDeg, handAperture] = Ransacer.boxangle(boxcoeffs_vec, *tablecoefficients, centroids, eigvecs);
+                        //wristAngleDeg = angle;
+                        //handAperture = aperture;
                         //std::cout << dims[0] << " " << dims[1] << " " << dims[2] << endl;
                         pcl::visualization::PointCloudColorHandlerCustom<PointT> boxpoints1_color_h(boxpoints_vec[0], 255, 0, 0);
                         pcl::visualization::PointCloudColorHandlerCustom<PointT> boxpoints2_color_h(boxpoints_vec[1], 0, 255, 0);
@@ -312,7 +333,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         if (width > 1)
                             width = 0;
 
-                        wristAngleAve = 0.8 * wristAngleAve + 0.2 * wristAngleDeg;
+                        wristAngleAve = 0.95 * wristAngleAve + 0.05 * wristAngleDeg;
                         if (runCounter == 0) {
                             wristAngleAve = wristAngleDeg;
                         }
@@ -320,25 +341,26 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         //cout << 'BOX' << endl;
 
                         boxcounter++;
+                        isBox = true;
+                        LastObjectCoeffs = boxcoeffs_vec[0]; // this will need fixing, makes no sense to only take the first entry.
                         break;
                         }
                     }
+                    cout << " Wrist angle is: " << wristAngleAve << "\n";
+                    float maxhandaperture = 0.11; //max hand opening distance of 11 cm
+                    int gripclosure;
+                    if(handAperture < 0.11){
+                        gripclosure = (handAperture / maxhandaperture) * 100;
 
-                    runCounter = cylcounter + sphcounter + boxcounter;
-
-                    if (runCounter <= 1000) {
-                        my_string += std::to_string(length) + " " + std::to_string(width) + " " + std::to_string(depth) + "\n";
-                        cout << "Run : " << runCounter << "\n";
+                        float rotationstep = 1.6; // 160 deg/100 steps 
+                        int rotation = wristAngleAve / rotationstep;
+                        if (gripclosure < 100 && rotation < 100) {
+                            std::string my_string = "2,0," + std::to_string(gripclosure) + "," + std::to_string(rotation) + ",0,50,50,50";
+                            //cout << my_string << " \n";
+                        }
                     }
-                    
-
-                    if (runCounter == 1000) {
-                        std::ofstream file("filename");
-                        file << my_string;
-                        
-                        //cout << my_string << "\n";
-                    }
-
+                   
+                    // Position mode, palmar grip, grip closure, wrist rotation, wrist flexion, max grip speed, max rotation speed, max flexion speed.
                     
                     viewerz->spinOnce(1, true);
 
@@ -374,7 +396,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Camerahandler::points2pcl(const royale::Dept
         return cloud;
     }
 
-bool Camerahandler::autoGrasp(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+bool Camerahandler::autoGraspSimple(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     bool objInRange = false;
     float Croppinglimit = 0.05; // defines x-min, x-max, y-min, y-max,
 
@@ -398,14 +420,51 @@ bool Camerahandler::autoGrasp(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     Eigen::Vector4f centroid;
     pcl::compute3DCentroid(*cloudFilteredXYZ, centroid);
     float distToCent = sqrt(pow(centroid.x(),2) + pow(centroid.y(),2) + pow(centroid.z(),2));
-    cout << " Distance is: " << distToCent << endl;
+
     if (distToCent < 0.012 && distToCent > 0) {
-        cout << "here 1 \n";
+
         objInRange = true;
     }
 
     return objInRange;
 }
+
+bool Camerahandler::autoGraspCyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) { //Finds smallest distance to cylinders line axis 
+    bool shouldClose = false;
+    PointT CylPoint(LastObjectCoeffs.values[0], LastObjectCoeffs.values[1], LastObjectCoeffs.values[2]); // The Point on the axis
+    PointT CylVec(LastObjectCoeffs.values[3], LastObjectCoeffs.values[4], LastObjectCoeffs.values[5]); // The Point on the axis
+
+    double t = -1 * (CylPoint.x * CylVec.x + CylPoint.y * CylVec.y + CylPoint.z * CylVec.z) / (pow(CylVec.x, 2) + pow(CylVec.y, 2) + pow(CylVec.z, 2));
+
+    float dist = sqrt(pow(CylPoint.x + CylVec.x*t, 2) + pow(CylPoint.y + CylVec.y * t, 2) + pow(CylPoint.z + CylVec.z * t, 2));
+
+    if (dist < maxGrasDist) {
+        shouldClose = true;
+    }
+    return shouldClose;
+}
+
+bool Camerahandler::autoGraspSph(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+    bool ShouldClose = false;
+
+    PointT Center(LastObjectCoeffs.values[0], LastObjectCoeffs.values[1], LastObjectCoeffs.values[2]);
+
+    if (std::sqrt(Center.x * Center.x + Center.y * Center.y + Center.z * Center.z) < maxGrasDist) //If center is within grasping distance hand closes.
+    {
+        ShouldClose = true;
+    }
+
+    return ShouldClose;
+}
+
+bool Camerahandler::autoGraspBox(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+
+    return false;
+}
+
+
+
+
 
 pcl::visualization::PCLVisualizer::Ptr Camerahandler::initViewer()
 {

@@ -192,7 +192,6 @@ tuple <float, float> RANSACHandler::boxangle(std::vector<pcl::ModelCoefficients>
 
 tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>>  RANSACHandler::shape_box(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> boxinliers_vec) {
     
-    
     std::vector <float> boxDim = {0,0,0};                  //boxDim[0] = width; BoxDim[1] = height
     std::vector <pcl::PointIndices::Ptr> model_indices = {inliers_plane1, inliers_plane2, inliers_plane3};
     std::vector <std::vector<float>> dimension_vector = {{0,0},{0,0},{0,0}};
@@ -314,7 +313,7 @@ tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSA
     seg_cylinder.setModelType(pcl::SACMODEL_CYLINDER);
     seg_cylinder.setNormalDistanceWeight(0.01);
     seg_cylinder.setMaxIterations(500);
-    seg_cylinder.setDistanceThreshold(0.01); //0.005
+    seg_cylinder.setDistanceThreshold(0.02); //0.005
     seg_cylinder.setRadiusLimits(0.01, 0.120);
     seg_cylinder.setInputCloud(cloud);
     seg_cylinder.setInputNormals(cloud_normals);

@@ -85,7 +85,10 @@ private:
     //Private Method prototypes
     pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence);
     pcl::visualization::PCLVisualizer::Ptr initViewer();
-    bool autoGrasp(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    bool autoGraspSimple(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    bool autoGraspBox(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    bool autoGraspCyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    bool autoGraspSph(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     
 };
 
