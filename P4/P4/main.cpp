@@ -12,6 +12,14 @@
 #include <conio.h>
 
 
+
+#include <Winsock2.h>
+//#include <iostream>
+#include <ws2tcpip.h>
+//#include <string.h>
+
+#pragma comment (lib, "ws2_32.lib")
+
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
@@ -19,8 +27,34 @@ using namespace std;
 typedef pcl::PointXYZ PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
 
-int main(int argc, char* argv[])
+void main(int argc, char* argv[])
 {
+
+
+    WSADATA data;
+    WORD version = MAKEWORD(2, 2);
+    int wsOk = WSAStartup(version, &data);
+    if (wsOk != 0) {
+        cout << "Cant start winsock!" << wsOk;
+        return;
+    }
+
+    // Create a hint structure for the server
+    sockaddr_in server;
+    server.sin_family = AF_INET;
+    server.sin_port = htons(54000);
+    inet_pton(AF_INET, "127.0.0.1", &server.sin_addr);
+
+    //socket creation
+    SOCKET out = socket(AF_INET, SOCK_DGRAM, 0);
+
+
+
+
+
+
+
+
     // Windows requires that the application allocate these, not the DLL.
     PlatformResources resources;
 

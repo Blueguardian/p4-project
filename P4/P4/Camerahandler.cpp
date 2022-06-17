@@ -1,5 +1,10 @@
 #include "Camerahandler.h"
 
+
+
+
+
+
 #define _CRT_SECURE_NO_WARNINGS
 
 using namespace royale;
@@ -104,6 +109,13 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
         {
             viewerz = initViewer();
             isViewer = true;
+
+
+
+
+           
+
+
         }
         viewerz->removeAllShapes();
         viewerz->removeAllPointClouds();
@@ -384,7 +396,9 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         if (gripclosure < 100 && rotation < 100) {
                             std::string my_string = "2,0," + std::to_string(gripclosure) + "," + std::to_string(rotation) + ",0,50,50,50";
                             // Position mode, palmar grip, grip closure, wrist rotation, wrist flexion, max grip speed, max rotation speed, max flexion speed.
-                            
+
+                            //int sendOk = sendto(out, my_string.c_str(), my_string.size() + 1, 0, (sockaddr*)&server, sizeof(server));
+
                             cout << my_string << " \n";
                         }
                     }
