@@ -1,16 +1,12 @@
 #include "Camerahandler.h"
 
-
-
-
-
-
 #define _CRT_SECURE_NO_WARNINGS
 
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
 
+extern UDPCom udp;
     
 // Pointcloud global objects and variables
 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);

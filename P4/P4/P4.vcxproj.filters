@@ -24,6 +24,9 @@
     <ClInclude Include="EMGHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="UDPCom.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camerahandler.cpp">
@@ -36,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RANSACHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UDPCom.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

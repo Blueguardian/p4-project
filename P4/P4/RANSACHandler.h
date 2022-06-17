@@ -10,6 +10,7 @@
 #include <tuple>
 #include <iostream>
 #include <mutex>
+#include "UDPCom.h"
 
 #include <pcl/common/impl/io.hpp>
 #include <pcl/point_cloud.h>

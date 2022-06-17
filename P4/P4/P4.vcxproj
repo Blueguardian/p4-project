@@ -153,12 +153,14 @@
     <ClInclude Include="Camerahandler.h" />
     <ClInclude Include="EMGHandler.h" />
     <ClInclude Include="RANSACHandler.h" />
+    <ClInclude Include="UDPCom.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camerahandler.cpp" />
     <ClCompile Include="EMGHandler.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="RANSACHandler.cpp" />
+    <ClCompile Include="UDPCom.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
