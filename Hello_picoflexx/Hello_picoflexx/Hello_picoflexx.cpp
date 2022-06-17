@@ -3,10 +3,6 @@
 #include <royale.hpp>
 #include <iostream>
 #include <mutex>
-#include <opencv2/opencv.hpp> 
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -37,8 +33,6 @@
 typedef pcl::PointXYZ PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
 
-void correctCylShape(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
-std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction);
 float normPointT(pcl::PointXYZ c);
 float dotProduct(pcl::PointXYZ a, pcl::PointXYZ b);
 void viewerPsycho(pcl::visualization::PCLVisualizer& viewer);
@@ -47,123 +41,20 @@ void viewerOneOff(pcl::visualization::PCLVisualizer& viewer);
 using namespace royale;
 using namespace sample_utils;
 using namespace std;
-using namespace cv;
 
 double dimensions;
 int user_data = 0;
 pcl::visualization::CloudViewer viewer("CloudViewer");
 
-///////////////////////////// ############# Bunglefuck below ############## /////////////////////////////////////////////
-
-class MyBungle : public IDepthDataListener
-{
-
-public:
-
-    MyBungle() :
-        undistortImage(true)
-    {
-
-        hasRun = false;
-    }
-
-    void onNewData(const DepthData* data)
-    {
-        // this callback function will be called for every new
-        std::lock_guard<std::mutex> lock(flagMutex);
-        pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);                    //creat a object cloud
-        pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
-        cloud = points2pcl(data, 242); //127(50),204(80),229(90),242(95),252(99) //this->depth_confidence 
-
-        std::vector<int> inliers;
-
-        // created RandomSampleConsensus object and compute the appropriated model
-        pcl::SampleConsensusModelSphere<pcl::PointXYZ>::Ptr model_s(new pcl::SampleConsensusModelSphere<pcl::PointXYZ>(cloud));
-
-        pcl::RandomSampleConsensus<pcl::PointXYZ> ransac(model_s);
-        ransac.setDistanceThreshold(.01);
-        ransac.computeModel();
-        ransac.getInliers(inliers);
-
-        // copies all inliers of the model computed to another PointCloud
-        pcl::copyPointCloud(*cloud, inliers, *final);
-    }
-
-    void setLensParameters(const LensParameters& lensParameters)
-    {
-        // Construct the camera matrix
-        // (fx   0    cx)
-        // (0    fy   cy)
-        // (0    0    1 )
-        Mat cameraMatrix = (Mat1d(3, 3) << lensParameters.focalLength.first, 0, lensParameters.principalPoint.first,
-            0, lensParameters.focalLength.second, lensParameters.principalPoint.second,
-            0, 0, 1);
-
-        // Construct the distortion coefficients
-        // k1 k2 p1 p2 k3
-        distortionCoefficients = (Mat1d(1, 5) << lensParameters.distortionRadial[0],
-            lensParameters.distortionRadial[1],
-            lensParameters.distortionTangential.first,
-            lensParameters.distortionTangential.second,
-            lensParameters.distortionRadial[2]);
-    }
-
-    void toggleUndistort()
-    {
-        std::lock_guard<std::mutex> lock(flagMutex);
-        undistortImage = !undistortImage;
-    }
-
-    bool hasRun;
-
-private:
-
-    float adjustZValue(float zValue)
-    {
-        float clampedDist = min(2.5f, zValue);
-        float newZValue = clampedDist / 2.5f * 255.0f;
-        return newZValue;
-    }
-
-    float adjustGrayValue(uint16_t grayValue)
-    {
-        float clampedVal = min(180.0f, grayValue * 1.0f);
-        float newGrayValue = clampedVal / 180.f * 255.0f;
-        return newGrayValue;
-    }
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
-    {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
-        cloud->is_dense = false;
-        for (size_t i = 0; i < data->points.size(); ++i) {
-            if (data->points.at(i).depthConfidence >= depthConfidence) {
-                cloud->push_back(pcl::PointXYZ(data->points.at(i).x, data->points.at(i).y, data->points.at(i).z));
-            }
-        }
-        return cloud;
-    }
-
-    // lens matrices used for the undistortion of
-    // the image
-    Mat cameraMatrix;
-    Mat distortionCoefficients;
-
-    std::mutex flagMutex;
-    bool undistortImage;
-};  //Bunglefuck
-
-///////////////////////////// ############# Bunglefuck above ############## /////////////////////////////////////////////
-
 
 class MyListener : public royale::IDepthDataListener
 {
 
+
     /**
     * Data that has been received in onNewData, and will be printed in the paint() method.
     */
-    struct MyFrameData
+    struct MyFrameData2
     {
         std::vector<uint32_t> exposureTimes;
         std::vector<std::string> asciiFrame;
@@ -171,11 +62,8 @@ class MyListener : public royale::IDepthDataListener
 
 public:
 
-    MyListener() :
-        undistortImage(true)
-    {
-        hasRun = false;
-    }
+    MyListener() = default;
+
 
     /**
     * Creates a listener which will have callbacks from two sources - the Royale framework, when a
@@ -192,9 +80,9 @@ public:
     */
     void onNewData(const royale::DepthData* data) override
     {
-        cout << "start" << endl;
+        //        cout << "start" << endl;
         if (!isViewer) {
-            
+
             viewer.runOnVisualizationThreadOnce(viewerOneOff);
             isViewer = true;
         }
@@ -226,10 +114,9 @@ public:
 
         pcl::ModelCoefficients::Ptr coefficients_plane(new pcl::ModelCoefficients), coefficients_cylinder(new pcl::ModelCoefficients);
         pcl::PointIndices::Ptr inliers_plane(new pcl::PointIndices), inliers_cylinder(new pcl::PointIndices);
-        
+
         cloud_filtered = cloud;
 
-        cout << "4" << endl;
         // Build a passthrough filter to remove unwanted points
        /*
         time.tic();
@@ -243,7 +130,7 @@ public:
         catch (const std::exception& ex) {
             cout << "1" << endl;
             cerr << ex.what() << endl;
-            
+
         }
 
         pass.setInputCloud(cloud_filtered);
@@ -257,23 +144,23 @@ public:
             cout << "2" << endl;
             cerr << ex.what() << endl;
         }
-        
+
         pass.setInputCloud(cloud_filtered);
         pass.setFilterFieldName("z");
         pass.setFilterLimits(filter_lims[4], filter_lims[5]);
         try {
             pass.filter(*cloud_filtered);
         }
-        
+
         catch (const std::exception& ex) {
             cout << "3" << endl;
             cerr << ex.what() << endl;
         }
-        
+
         */
-       
+
         std::cerr << "PointCloud after filtering: " << cloud_filtered->points.size() << " data points." << std::endl;
-        
+
         // Downsampling the filtered point cloud
         pcl::VoxelGrid<pcl::PointXYZ> dsfilt;
         dsfilt.setInputCloud(cloud_filtered);
@@ -284,7 +171,7 @@ public:
         // Draw filtered PointCloud
         pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_filtered_in_color_h(cloud, (int)255 * txt_gray_lvl, (int)255 * txt_gray_lvl,
             (int)255 * txt_gray_lvl);
-        
+
         cout << "5" << endl;
         // Estimate point normals
         ne.setSearchMethod(tree);
@@ -313,12 +200,12 @@ public:
         extract.setInputCloud(cloud_filtered);
         extract.setIndices(inliers_cylinder);
         extract.setNegative(false);
-        
+
         extract.filter(*cloud_cylinder);
         cout << "7" << endl;
         */
         pcl::PointCloud<PointT>::Ptr cloud_cylinder(new pcl::PointCloud<PointT>());
-        if ( !cloud_cylinder->points.empty()) {
+        if (!cloud_cylinder->points.empty()) {
             std::cerr << "\nCan't find the cylindrical component";
         }
         else {
@@ -328,8 +215,8 @@ public:
             pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cylinder_color_h(cloud_cylinder, 180, 20, 20);
             viewer.showCloud(cloud_filtered, "cloud_cylinder");
 
-           // viewer.runOnVisualizationThread(viewerPsycho);
-            
+            viewer.runOnVisualizationThread(viewerPsycho);
+
             // Plot cylinder shape
             //pcl::ModelCoefficients::Ptr corrected_coefs_cylinder(new pcl::ModelCoefficients);
             //correctCylShape(*corrected_coefs_cylinder, *coefficients_cylinder, *cloud_cylinder);
@@ -343,37 +230,14 @@ public:
         // Or here use a_callback_to_other_ui_of_your_choice();
         // You can also choose to plot everything down here in one go.
     }
-    
-    void setLensParameters(const LensParameters& lensParameters)
-    {
-        // Construct the camera matrix
-        // (fx   0    cx)
-        // (0    fy   cy)
-        // (0    0    1 )
-        Mat cameraMatrix = (Mat1d(3, 3) << lensParameters.focalLength.first, 0, lensParameters.principalPoint.first,
-            0, lensParameters.focalLength.second, lensParameters.principalPoint.second,
-            0, 0, 1);
 
-        // Construct the distortion coefficients
-        // k1 k2 p1 p2 k3
-        distortionCoefficients = (Mat1d(1, 5) << lensParameters.distortionRadial[0],
-            lensParameters.distortionRadial[1],
-            lensParameters.distortionTangential.first,
-            lensParameters.distortionTangential.second,
-            lensParameters.distortionRadial[2]);
-    }
 
-    void toggleUndistort()
-    {
-        std::lock_guard<std::mutex> lock(flagMutex);
-        undistortImage = !undistortImage;
-    }
 
-    Mat distortionCoefficients;
+
+
+
 
     std::mutex flagMutex;
-    bool undistortImage;
-    bool hasRun;
 
 private:
 
@@ -399,17 +263,17 @@ private:
     std::array<float, 6> filter_lims = { -0.050, 0.050, -0.050, 0.050, 0.000, 0.150 }; // picoflexx depth z-axis (Min ? m)
     float filt_leaf_size = 0.005;
 
-  /*  pcl::visualization::PCLVisualizer::Ptr initViewer()
-    {
-        pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
-        viewer->createViewPort(0.0, 0.0, 1.0, 1.0, vp);
-        viewer->setCameraPosition(0.0, 0.0, -0.5, 0.0, -1.0, 0.0, vp);
-        viewer->setSize(800, 600);
-        viewer->setBackgroundColor(bckgr_gray_level, bckgr_gray_level, bckgr_gray_level, vp);
-        viewer->addCoordinateSystem(0.25); // Global reference frame (on-camera)
+    /*  pcl::visualization::PCLVisualizer::Ptr initViewer()
+      {
+          pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
+          viewer->createViewPort(0.0, 0.0, 1.0, 1.0, vp);
+          viewer->setCameraPosition(0.0, 0.0, -0.5, 0.0, -1.0, 0.0, vp);
+          viewer->setSize(800, 600);
+          viewer->setBackgroundColor(bckgr_gray_level, bckgr_gray_level, bckgr_gray_level, vp);
+          viewer->addCoordinateSystem(0.25); // Global reference frame (on-camera)
 
-        return viewer;
-    }*/
+          return viewer;
+      }*/
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr points2pcl(const royale::DepthData* data, uint8_t depthConfidence)
     {
@@ -520,6 +384,9 @@ void viewerPsycho(pcl::visualization::PCLVisualizer& viewer)
     user_data++;
 }
 
+void correctCylShape(pcl::ModelCoefficients& cyl, const pcl::ModelCoefficients& coefficients, const pcl::PointCloud<PointT>& cloud);
+std::array<float, 2> getPointCloudExtremes(const pcl::PointCloud<PointT>& cloud, pcl::PointXYZ center, pcl::PointXYZ direction);
+
 int main(int argc, char* argv[])
 {
     // Windows requires that the application allocate these, not the DLL.
@@ -546,30 +413,17 @@ int main(int argc, char* argv[])
     // the camera device is now available and CameraManager can be deallocated here
   
     // IMPORTANT: call the initialize method before working with the camera device
-    auto status = cameraDevice->initialize();
-   
-    // retrieve the lens parameters from Royale
-    LensParameters lensParameters;
-    status = cameraDevice->getLensParameters(lensParameters);
-    listener.setLensParameters(lensParameters);
+    auto status = cameraDevice->initialize();   
 
     cameraDevice->registerDataListener(&listener);
     cameraDevice->startCapture();
     // register a data listener
 
-    int currentKey = 0;
-    while (currentKey != 27)
-    {
-        // wait until a key is pressed
-        currentKey = waitKey(1);
-        
 
-        if (currentKey == 'd')
-        {
-            
-            // toggle the undistortion of the image
-            listener.toggleUndistort();
-        }
+    while (!_kbhit())
+    {
+         
+        
     }
     cameraDevice->stopCapture();
     return 0;
