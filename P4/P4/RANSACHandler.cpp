@@ -55,9 +55,9 @@ extern PointT operator* (const PointT Point1, const float multiplier);
 
 extern PointT operator* (const PointT Point1, const double multiplier);
 
-extern PointT operator+ (const PointT Point1, const PointT Point2);
-
 extern PointT operator* (const PointT Point1, const int multiplier);
+
+extern PointT operator+ (const PointT Point1, const PointT Point2);
 
 PointT RANSACHandler::flipVector(PointT vec1, PointT vec2) {
     double theta = 90 * 3.14 / 180;
@@ -109,7 +109,7 @@ float RANSACHandler::normPointT(pcl::PointXYZ c)
 
 bool RANSACHandler::Checkorthogonal(std::vector<pcl::ModelCoefficients> coeefs, int i) {
     bool isOrthogonal = false;
-    float threshold = 0.2;
+    float threshold = 0.20;
     std::vector<float> dotProducts = {0,0,0};
     
     if (i < 3) {
@@ -240,7 +240,7 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
         pcl::PointXYZ PC2(eig_vec(0, secondBiggestElementsIndex), eig_vec(1, secondBiggestElementsIndex), eig_vec(2, secondBiggestElementsIndex)); //principal component 2
 
         //cout << "PC1:" << PC1 << "PC2:" << PC2 << endl;
-
+        
         pcl::PointXYZ transformedPoint;
         for (int idx = 0; idx < demeanedCloud->points.size(); idx++) {
             transformedPoint.x = dotProduct(demeanedCloud->points[idx], PC1); // Transform the points be along the principal componets
@@ -251,8 +251,8 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
 
         Eigen::Vector4f PCcentroid;
         pcl::compute3DCentroid(*TransformedCloud, PCcentroid);
-        pcl::PointXYZ PCcnt_coord(PCcentroid[0], PCcentroid[1], PCcentroid[2]);
-        
+        pcl::PointXYZ PCcnt_coord(PCcentroid[0], PCcentroid[1], PCcentroid[2]); 
+       
         std::array<float, 2> planedim1 = getPointCloudExtremes(*TransformedCloud, PCcnt_coord, PC1); //max and min along PC1
         std::array<float, 2> planedim2 = getPointCloudExtremes(*TransformedCloud, PCcnt_coord, PC2);
        
@@ -269,7 +269,6 @@ tuple <std::vector <float>,std::vector<std::vector<PointT>>, std::vector<PointT>
         eigVectors.push_back(eigVec);
       
         //cout << "Box dims: " << dimension_vector[i][0] << "  " << dimension_vector[i][1] << endl;
-        
     }
 
     //cout << "\n";
@@ -311,9 +310,9 @@ tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSA
     seg_cylinder.setOptimizeCoefficients(true);
     seg_cylinder.setMethodType(pcl::SAC_RANSAC);
     seg_cylinder.setModelType(pcl::SACMODEL_CYLINDER);
-    seg_cylinder.setNormalDistanceWeight(0.01);
+    seg_cylinder.setNormalDistanceWeight(0.00);
     seg_cylinder.setMaxIterations(500);
-    seg_cylinder.setDistanceThreshold(0.02); //0.005
+    seg_cylinder.setDistanceThreshold(0.006); //0.005
     seg_cylinder.setRadiusLimits(0.01, 0.120);
     seg_cylinder.setInputCloud(cloud);
     seg_cylinder.setInputNormals(cloud_normals);
@@ -340,8 +339,11 @@ tuple <float, std::vector<pcl::ModelCoefficients>, std::vector <pcl::PointCloud<
     seg_box.setMethodType(pcl::SAC_RANSAC);
     seg_box.setModelType(pcl::SACMODEL_PLANE);
     seg_box.setMaxIterations(1000);
-    seg_box.setDistanceThreshold(0.005);
-
+    seg_box.setDistanceThreshold(0.0055);
+    /*
+    plane_coe_vec[0].values.clear(); plane_coe_vec[1].values.clear(); plane_coe_vec[2].values.clear();
+    plane_vec[0].reset(); plane_vec[1].reset(); plane_vec[2].reset();
+    */
     double ratio_planes[3];
     ratio_planes[0] = 0;
     ratio_planes[1] = 0;
@@ -375,7 +377,7 @@ tuple <float, std::vector<pcl::ModelCoefficients>, std::vector <pcl::PointCloud<
     if (!Checkorthogonal(plane_coe_vec, i)) {
         boxRatio = 0;
     }
-
+    
     *inlierPoints = *plane_vec[0] +  *plane_vec[1] + *plane_vec[2];
     
     return { boxRatio, plane_coe_vec, plane_vec };
@@ -383,34 +385,22 @@ tuple <float, std::vector<pcl::ModelCoefficients>, std::vector <pcl::PointCloud<
 
 tuple <float, pcl::ModelCoefficients, pcl::PointCloud<pcl::PointXYZ>::Ptr> RANSACHandler::check_sph(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
 
-    pcl::NormalEstimation<PointT, pcl::Normal> ne;
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
     pcl::SACSegmentation<PointT> seg_sph;
     pcl::ExtractIndices<PointT> extract_sph;
     pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>());
 
-    ne.setSearchMethod(tree);
-    ne.setInputCloud(cloud);
-    ne.setKSearch(50);
-    ne.compute(*cloud_normals);
-
     seg_sph.setOptimizeCoefficients(true);
     seg_sph.setMethodType(pcl::SAC_RANSAC);
     seg_sph.setModelType(pcl::SACMODEL_SPHERE);
-    //seg_sph.setNormalDistanceWeight(0.01);
     seg_sph.setMaxIterations(500);
-    seg_sph.setDistanceThreshold(0.007);
+    seg_sph.setDistanceThreshold(0.006);
     seg_sph.setRadiusLimits(0.005, 0.150);
     seg_sph.setInputCloud(cloud);
-    //seg_sph.setInputNormals(cloud_normals);
+
 
     //Obtain the inliers of sphere
     seg_sph.segment(*inliers_sphere, *coefficients_sphere);
-    /*if (coefficients_sphere == nullptr)
-    {   
-        //coefficients_sphere = new pcl::ModelCoefficients();
-        return { *coefficients_sphere, coefficients_sphere->values[3]};
-    }*/
     // Save the sphere inliers                                       
     extract_sph.setIndices(inliers_sphere);
     extract_sph.setInputCloud(cloud);

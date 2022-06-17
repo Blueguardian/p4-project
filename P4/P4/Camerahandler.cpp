@@ -29,14 +29,14 @@ pcl::ModelCoefficients LastObjectCoeffs;
 
 float maxGrasDist = 0.1;
 
-int cylcounter = 0;
-int sphcounter = 0;
-int boxcounter = 0;
-
 int vp = 0;
 int runCounter = 0;
 
-float wristAngleAve = 0;
+vector<int> shapeCounters = {0,0,0};
+vector<float> apertureAves = {0,0,0};
+vector<float> wristAngleAves = {0,45,0};
+float angleSmoothing = 0.90;
+float apertureSmoothing = 0.90;
 
 bool AutograspOn = false;
 
@@ -54,6 +54,10 @@ PointT operator* (const PointT Point1, const double multiplier) {
 
 PointT operator* (const PointT Point1, const int multiplier) {
     return PointT(Point1.x * multiplier, Point1.y * multiplier, Point1.z * multiplier);
+}
+
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
 }
 
 Camerahandler::Camerahandler()
@@ -146,7 +150,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                 seg1.setModelType(pcl::SACMODEL_PLANE);
                 seg1.setMethodType(pcl::SAC_RANSAC);
                 seg1.setMaxIterations(100);
-                seg1.setDistanceThreshold(0.005);
+                seg1.setDistanceThreshold(0.007);
                 seg1.setInputCloud(cloudDownsampled);
                 seg1.segment(*inliers, *tablecoefficients);
 
@@ -164,8 +168,8 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                 std::vector<pcl::PointIndices> cluster_indices;
                 pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
                 // specify euclidean cluster parameters
-                ec.setClusterTolerance(0.01); // 1cm
-                ec.setMinClusterSize(50);
+                ec.setClusterTolerance(0.007); // 1cm
+                ec.setMinClusterSize(200);
                 ec.setMaxClusterSize(25000);
                 ec.setSearchMethod(tree);
                 ec.setInputCloud(cloudPlaneRemoved);
@@ -215,7 +219,6 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_cluster_color_h(cloud_cluster, 255, 255, 255);
                     viewerz->addPointCloud(cloud_cluster, cloud_cluster_color_h, "Cluster", vp);
 
-
                     int minratio = 60;
                     if (Cylratio < minratio && Sphratio < minratio && Boxratio < minratio) {
                         viewerz->spinOnce(1, true);
@@ -250,13 +253,15 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         std::array<float, 2> cylExtremes = Ransacer.getPointCloudExtremes(*cylpoints, PointOnCyl, cylvec);
                         width = abs(cylExtremes[0] - cylExtremes[1]); //height = abs(cylExtremes[0] - cylExtremes[1]);
                         length = cylcoeffs.values[6];//radius = cylcoeffs.values[6];
-                      
+                        
+                        cout << "Width: " << width << "Radius" << length << "\n";
                         pcl::visualization::PointCloudColorHandlerCustom<PointT> cloudDownsampled_color_h(cylpoints, 255, 0, 0);
                         viewerz->addPointCloud(cylpoints, cloudDownsampled_color_h, "Inliers", vp);
       
                         cylcoeffs.values[3] = cylcoeffs.values[3]* width; cylcoeffs.values[4] = cylcoeffs.values[4] * width; cylcoeffs.values[5] = cylcoeffs.values[5] * width;
                         viewerz->addCylinder(cylcoeffs);
 
+                        //cout << cylvec << "\n";
                         if (cylvec.y > 0) {
                             cylvec = cylvec * -1;        
                         }
@@ -266,19 +271,23 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         if(cylvec.x > 0 ){
                             wristAngleDeg = -1 * wristAngleDeg;
                         }
+                       
+                        /*if (cylvec.x < 0 || cylvec.y < 0) {
+                            wristAngleDeg = wristAngleDeg * sgn(wristAngleAve);
+                        }*/
+                        viewerz->addArrow(PointOnCyl + cylvec, PointOnCyl, 255, 0, 0);
 
-                        handAperture = cylcoeffs.values[6]*2 +0.02;
-
-                        wristAngleAve = wristAngleAve * 0.95 + wristAngleDeg * 0.05;
                         if (runCounter == 0) {
-                            wristAngleAve = wristAngleDeg;
-                        }                    
-
-                        
+                            wristAngleAves[0] = wristAngleDeg;
+                            apertureAves[0] = handAperture;
+                        }
+                        handAperture = cylcoeffs.values[6] * 2 + 0.02;
+                        apertureAves[0] = apertureSmoothing * apertureAves[0] + (1 - apertureSmoothing) * handAperture;
+                        wristAngleAves[0] = angleSmoothing * wristAngleAves[0] + (1 - angleSmoothing) * wristAngleDeg;
 
                         //cout << "angle: " << wristAngleAve << endl;
 
-                        cylcounter++;
+                        shapeCounters[0]++;
                         isCyl = true;
                         LastObjectCoeffs = cylcoeffs;
                         break;
@@ -293,7 +302,13 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         handAperture = sphcoeffs.values[3] * 2 + 0.02;
                         length = sphcoeffs.values[3];
 
-                        sphcounter++;
+                        if (runCounter == 0) {
+                            apertureAves[1] = handAperture;
+                        }
+
+                        apertureAves[1] = apertureSmoothing * apertureAves[1] + (1 - apertureSmoothing) * handAperture;
+
+                        shapeCounters[1]++;
                         isSph = true;
                         LastObjectCoeffs = sphcoeffs;
                         break;
@@ -315,7 +330,7 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         viewerz->addPointCloud(boxpoints_vec[2], boxpoints3_color_h, "Inliers3", vp);
                         
                         viewerz->addArrow(centroids[0] + eigvecs[0][1], centroids[0], 255, 0, 0, true, "p1v1");
-                        //viewerz->addArrow(centroids[0] + eigvecs[0][0], centroids[0], 255, 0, 0, true, "p1v2");
+                        viewerz->addArrow(centroids[0] + eigvecs[0][0], centroids[0], 255, 0, 0, true, "p1v2");
                         viewerz->addArrow(centroids[1] + eigvecs[1][0], centroids[1], 0, 255, 0, true, "p2v1");
                         //viewerz->addArrow(centroids[1] + eigvecs[1][1], centroids[1] , 0, 255, 0, true, "p2v2");
                         //viewerz->addArrow(centroids[2] + eigvecs[2][0], centroids[2] , 0, 0, 255, true, "p3v1");
@@ -333,34 +348,53 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                         if (width > 1)
                             width = 0;
 
-                        wristAngleAve = 0.95 * wristAngleAve + 0.05 * wristAngleDeg;
+
                         if (runCounter == 0) {
-                            wristAngleAve = wristAngleDeg;
+                            wristAngleAves[2] = wristAngleDeg;
+                            apertureAves[2] = handAperture;
                         }
+
+                        wristAngleAves[2] = angleSmoothing * wristAngleAves[2] + (1 - angleSmoothing) * wristAngleDeg;
+                        apertureAves[2] = apertureSmoothing * apertureAves[2] + (1 - apertureSmoothing) * handAperture;
                         //cout << wristAngleAve << endl;
                         //cout << 'BOX' << endl;
 
-                        boxcounter++;
+                        shapeCounters[2]++;
                         isBox = true;
                         LastObjectCoeffs = boxcoeffs_vec[0]; // this will need fixing, makes no sense to only take the first entry.
                         break;
                         }
                     }
-                    cout << " Wrist angle is: " << wristAngleAve << "\n";
+                
+                    runCounter = shapeCounters[0] + shapeCounters[1] + shapeCounters[2];
+
+                    if(runCounter == 20){
+
+                    int shapeChosenAve = std::max_element(shapeCounters.begin(), shapeCounters.end()) - shapeCounters.begin(); //choose shape
+                    handAperture = apertureAves[shapeChosenAve];
+                    wristAngleDeg = wristAngleAves[shapeChosenAve];
+
                     float maxhandaperture = 0.11; //max hand opening distance of 11 cm
                     int gripclosure;
                     if(handAperture < 0.11){
                         gripclosure = (handAperture / maxhandaperture) * 100;
 
                         float rotationstep = 1.6; // 160 deg/100 steps 
-                        int rotation = wristAngleAve / rotationstep;
+                        int rotation = wristAngleDeg / rotationstep;
                         if (gripclosure < 100 && rotation < 100) {
                             std::string my_string = "2,0," + std::to_string(gripclosure) + "," + std::to_string(rotation) + ",0,50,50,50";
-                            //cout << my_string << " \n";
+                            // Position mode, palmar grip, grip closure, wrist rotation, wrist flexion, max grip speed, max rotation speed, max flexion speed.
+                            
+                            cout << my_string << " \n";
                         }
                     }
-                   
-                    // Position mode, palmar grip, grip closure, wrist rotation, wrist flexion, max grip speed, max rotation speed, max flexion speed.
+                    runCounter = 0;
+                    apertureAves = { 0,0,0 };
+                    wristAngleAves = { 0,45,0 };
+                    shapeCounters = { 0,0,0 };
+                 }
+
+                    
                     
                     viewerz->spinOnce(1, true);
 
@@ -370,7 +404,6 @@ void Camerahandler::onNewData(const royale::DepthData* data)  {
                     return;
                 }
 
-             
             }
             else {
             
@@ -461,10 +494,6 @@ bool Camerahandler::autoGraspBox(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 
     return false;
 }
-
-
-
-
 
 pcl::visualization::PCLVisualizer::Ptr Camerahandler::initViewer()
 {

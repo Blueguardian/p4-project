@@ -89,7 +89,6 @@ private:
     bool autoGraspBox(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     bool autoGraspCyl(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     bool autoGraspSph(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    
 };
 
 
