@@ -1,21 +1,7 @@
-//
-// Created by mogens on 25/04/2022.
-//
-
 #define _CRT_SECURE_NO_WARNINGS
 
-
-
-//#include <EMGHandler.cpp>
 #include "Camerahandler.h"
-
 #include <conio.h>
-
-// <winsock2.h>
-//#include <ws2tcpip.h>
-//#include <stdio.h>
-
-//#pragma comment (lib, "ws2_32.lib")
 
 using namespace royale;
 using namespace sample_utils;
