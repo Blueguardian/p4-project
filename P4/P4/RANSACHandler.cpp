@@ -1,9 +1,3 @@
-//
-// Created by mogens on 25/04/2022.
-//
-
-
-
 #include "RANSACHandler.h"
 
 pcl::ModelCoefficients::Ptr coefficients_cylinder(new pcl::ModelCoefficients);
