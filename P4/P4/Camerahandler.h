@@ -1,7 +1,4 @@
 
-//
-// Created by mogens on 25/04/2022.
-//
 #define _CRT_SECURE_NO_WARNINGS
 
 #ifndef P4_PROJECT_CAMERAHANDLER_H
@@ -51,13 +48,6 @@ using namespace std;
 class Camerahandler : public royale::IDepthDataListener
 {
 public:
-
-    //public fields
-    std::mutex flagMutex;
-    bool undistortImage;
-    bool hasRun;
-    int indx;
-    std::stack<pcl::PointCloud<PointT>::Ptr> buffer;
 
     //Public Method Prototypes
     Camerahandler();
